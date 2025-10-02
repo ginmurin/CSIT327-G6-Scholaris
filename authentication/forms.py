@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from .models import User as AppUser
 
 class RegisterForm(forms.Form):
@@ -7,7 +7,7 @@ class RegisterForm(forms.Form):
     email = forms.EmailField(label="Email")
     password1 = forms.CharField(widget=forms.PasswordInput, label="Password")
     password2 = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
-    role = forms.CharField(max_length=50, required=False, label="Role")
+    role = forms.CharField(max_length=50, required=False, initial="student", label="Role")
     learningstyle = forms.CharField(max_length=50, required=False, label="Learning Style")
     goals = forms.CharField(widget=forms.Textarea(attrs={"rows":3}), required=False, label="Goals")
 
@@ -28,8 +28,25 @@ class RegisterForm(forms.Form):
         return AppUser.objects.create(
             name=d["name"].strip(),
             email=d["email"].lower(),
-            password=make_password(d["password1"]),  # secure hash
-            role=(d.get("role") or "").strip(),
-            learningstyle=(d.get("learningstyle") or "").strip(),
-            goals=(d.get("goals") or "").strip(),
+            password=make_password(d["password1"]),
+            role="student",
+            learningstyle=(d.get("learningstyle") or "").strip() or None,
+            goals=(d.get("goals") or "").strip() or None,
         )
+    
+class LoginForm(forms.Form):
+    email = forms.EmailField(label="Email")
+    password = forms.CharField(widget=forms.PasswordInput, label="Password")
+
+    def clean(self):
+        cleaned = super().clean()
+        email = (cleaned.get("email") or "").strip().lower()
+        password = cleaned.get("password") or ""
+        try:
+            user = AppUser.objects.get(email=email)
+        except AppUser.DoesNotExist:
+            raise forms.ValidationError("Invalid email or password.")
+        if not check_password(password, user.password):
+            raise forms.ValidationError("Invalid email or password.")
+        cleaned["user"] = user
+        return cleaned

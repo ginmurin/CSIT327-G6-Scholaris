@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <title>Register</title>
-  <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'authentication/css/register.css' %}">
 </head>
 <body>
   <div class="container">
@@ -55,12 +55,6 @@
       </p>
 
       <p>
-        {{ form.role.label_tag }}<br>
-        {{ form.role }}
-        {{ form.role.errors }}
-      </p>
-
-      <p>
         {{ form.learningstyle.label_tag }}<br>
         {{ form.learningstyle }}
         {{ form.learningstyle.errors }}
@@ -73,6 +67,9 @@
       </p>
 
       <button type="submit">Register</button>
+
+      <a href="{% url 'login' %}" class="btn">Already have an account? Click here to login</a>
+      </div>
     </form>
   </div>
 </body>

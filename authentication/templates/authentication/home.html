@@ -1,0 +1,22 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Home</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
+  <script>
+    // If user presses Back and the page was BF-cached, force a reload
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) location.reload();
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome, {{ name }}!</h1>
+    <p style="margin-top:12px;"><a href="{% url 'logout' %}">Logout</a></p>
+  </div>
+</body>
+</html>
