@@ -1,0 +1,76 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Register</title>
+  <link rel="stylesheet" href="{% static 'authentication/css/register.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+
+    {# Show ALL errors clearly #}
+    {% if form.errors or form.non_field_errors %}
+      <div class="error" style="background:#fee;border:1px solid #f99;padding:10px;margin-bottom:12px;">
+        <strong>Form errors:</strong>
+        <ul style="margin:8px 0 0 18px;">
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <p>
+        {{ form.name.label_tag }}<br>
+        {{ form.name }}
+        {{ form.name.errors }}
+      </p>
+
+      <p>
+        {{ form.email.label_tag }}<br>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </p>
+
+      <p>
+        {{ form.password1.label_tag }}<br>
+        {{ form.password1 }}
+        {{ form.password1.errors }}
+      </p>
+
+      <p>
+        {{ form.password2.label_tag }}<br>
+        {{ form.password2 }}
+        {{ form.password2.errors }}
+      </p>
+
+      <p>
+        {{ form.learningstyle.label_tag }}<br>
+        {{ form.learningstyle }}
+        {{ form.learningstyle.errors }}
+      </p>
+
+      <p>
+        {{ form.goals.label_tag }}<br>
+        {{ form.goals }}
+        {{ form.goals.errors }}
+      </p>
+
+      <button type="submit">Register</button>
+
+      <a href="{% url 'login' %}" class="btn">Already have an account? Click here to login</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

@@ -29,7 +29,8 @@ SECRET_KEY = 'django-insecure-e3^=st%k(@w=y+nqtj2@wji41-b&3ajx8rro(3(jp=s7=1c!8y
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+STATIC_URL = "static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 ALLOWED_HOSTS = []
 
 
@@ -42,7 +43,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'authentication',
 ]
+
+# LOGIN_REDIRECT_URL = "home"
+# LOGOUT_REDIRECT_URL = "login"
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

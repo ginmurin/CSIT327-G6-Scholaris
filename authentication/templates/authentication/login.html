@@ -1,0 +1,39 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Login</title>
+  <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1>Sign in</h1>
+
+    {% if form.errors or form.non_field_errors %}
+      <div class="error" style="background:#fee;border:1px solid #f99;padding:10px;margin-bottom:12px;">
+        <strong>Form errors:</strong>
+        <ul style="margin:8px 0 0 18px;">
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <p>{{ form.email.label_tag }}<br>{{ form.email }}{{ form.email.errors }}</p>
+      <p>{{ form.password.label_tag }}<br>{{ form.password }}{{ form.password.errors }}</p>
+      <button type="submit">Login</button>
+    </form>
+
+    <p style="margin-top:12px;">No account? <a href="{% url 'register' %}">Register</a></p>
+  </div>
+</body>
+</html>
