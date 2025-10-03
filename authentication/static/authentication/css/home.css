@@ -1,0 +1,310 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body styling - Modern dark theme with animated gradient */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #1a1a2e);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Animated stars background */
+body::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+    radial-gradient(2px 2px at 60px 70px, #fff, transparent),
+    radial-gradient(1px 1px at 50px 50px, #ddd, transparent),
+    radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+    radial-gradient(2px 2px at 90px 10px, #eee, transparent);
+  background-size: 200px 200px;
+  background-repeat: repeat;
+  opacity: 0.5;
+  animation: starsMove 60s linear infinite;
+}
+
+@keyframes starsMove {
+  from { transform: translateY(0); }
+  to { transform: translateY(-200px); }
+}
+
+/* Glowing orbs floating in background */
+body::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(67, 233, 123, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 90% 80%, rgba(56, 249, 215, 0.15) 0%, transparent 35%),
+    radial-gradient(circle at 50% 50%, rgba(147, 51, 234, 0.1) 0%, transparent 40%);
+  animation: orbFloat 10s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes orbFloat {
+  0%, 100% { 
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  33% { 
+    transform: translate(30px, -20px) scale(1.1);
+    opacity: 0.8;
+  }
+  66% { 
+    transform: translate(-20px, 15px) scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+/* Container - Glass morphism effect */
+.container {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 60px 50px;
+  border-radius: 30px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 60px rgba(67, 233, 123, 0.1),
+    0 0 100px rgba(56, 249, 215, 0.3);
+  width: 100%;
+  max-width: 650px;
+  position: relative;
+  z-index: 1;
+  animation: containerFloat 0.6s ease-out, pulseGlow 4s ease-in-out infinite;
+  text-align: center;
+}
+
+@keyframes containerFloat {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      inset 0 0 60px rgba(67, 233, 123, 0.1),
+      0 0 100px rgba(56, 249, 215, 0.3);
+  }
+  50% { 
+    box-shadow: 
+      0 25px 70px rgba(0, 0, 0, 0.6),
+      inset 0 0 80px rgba(67, 233, 123, 0.2),
+      0 0 140px rgba(56, 249, 215, 0.5),
+      0 0 180px rgba(147, 51, 234, 0.3);
+  }
+}
+
+/* Welcome headline */
+.container h1 {
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 42px;
+  background: linear-gradient(135deg, #43e97b, #38f9d7, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  position: relative;
+  padding-bottom: 20px;
+  line-height: 1.4;
+  letter-spacing: 1px;
+  text-shadow: 0 0 30px rgba(67, 233, 123, 0.3);
+}
+
+.container h1::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #43e97b, #38f9d7, #a78bfa, transparent);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+  animation: lineGlow 3s ease-in-out infinite;
+}
+
+@keyframes lineGlow {
+  0%, 100% { opacity: 0.6; width: 150px; }
+  50% { opacity: 1; width: 180px; }
+}
+
+/* Success icon before heading */
+.container h1::before {
+  content: '🎓';
+  display: block;
+  font-size: 80px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 20px rgba(67, 233, 123, 0.6));
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% { 
+    transform: translateY(-10px) rotate(5deg);
+  }
+}
+
+/* Welcome message */
+.container p {
+  margin-top: 20px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Logout link styling */
+.container a {
+  display: inline-block;
+  margin-top: 30px;
+  padding: 16px 50px;
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #1a1a2e;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 
+    0 6px 20px rgba(67, 233, 123, 0.4),
+    0 0 40px rgba(56, 249, 215, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.container a::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.container a:hover::before {
+  left: 100%;
+}
+
+.container a:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    0 10px 30px rgba(67, 233, 123, 0.6),
+    0 0 60px rgba(56, 249, 215, 0.4);
+}
+
+.container a:active {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* Add a decorative badge */
+.container::before {
+  content: '🚀 Student Portal';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+  color: white;
+  padding: 10px 25px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 
+    0 5px 15px rgba(167, 139, 250, 0.5),
+    0 0 30px rgba(236, 72, 153, 0.3);
+  animation: badgePulse 3s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { 
+    transform: translateX(-50%) scale(1);
+  }
+  50% { 
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 
+      0 5px 20px rgba(167, 139, 250, 0.7),
+      0 0 40px rgba(236, 72, 153, 0.5);
+  }
+}
+
+/* Additional info section (if needed) */
+.info-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f7fafc;
+  border-radius: 10px;
+  border-left: 4px solid #43e97b;
+}
+
+.info-section h2 {
+  font-size: 18px;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.info-section p {
+  margin-top: 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .container {
+    padding: 40px 30px;
+  }
+  
+  .container h1 {
+    font-size: 26px;
+  }
+  
+  .container h1::before {
+    font-size: 52px;
+  }
+  
+  body::after {
+    font-size: 18px;
+    letter-spacing: 15px;
+  }
+}
