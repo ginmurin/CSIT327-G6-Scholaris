@@ -3,9 +3,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Learning Pathway</title>
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-  <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'authentication/css/home.css' %}?v=5">
   <script>
     // If user presses Back and the page was BF-cached, force a reload
     window.addEventListener('pageshow', function (e) {
@@ -14,9 +15,67 @@
   </script>
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome, {{ name }}!</h1>
-    <p style="margin-top:12px;"><a href="{% url 'logout' %}">Logout</a></p>
+  <div class="dashboard-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="welcome-section">
+        <h1>Welcome back, {{ name }}! 🎓</h1>
+        <p>Ready to continue your learning journey?</p>
+      </div>
+      <div class="header-actions">
+        <a href="{% url 'create_study_plan' %}" class="btn btn-primary">
+          ✨ Create Study Plan
+        </a>
+        <a href="{% url 'logout' %}" class="btn btn-secondary">
+          Logout
+        </a>
+      </div>
+    </header>
+
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+      <div class="stat-card">
+        <span class="stat-icon">📚</span>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Study Plans</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🎯</span>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Goals Achieved</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">⏱️</span>
+        <div class="stat-value">0h</div>
+        <div class="stat-label">Study Time</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🔥</span>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="action-cards">
+      <a href="{% url 'list_study_plans' %}" class="action-card card-primary">
+        <span class="card-icon">📖</span>
+        <h3 class="card-title">My Study Plans</h3>
+        <p class="card-description">View, edit, and manage all your personalized study plans in one place</p>
+      </a>
+      
+      <a href="{% url 'create_study_plan' %}" class="action-card">
+        <span class="card-icon">➕</span>
+        <h3 class="card-title">Create New Plan</h3>
+        <p class="card-description">Design a custom study plan tailored to your learning goals and schedule</p>
+      </a>
+      
+      <a href="{% url 'logout' %}" class="action-card card-logout">
+        <span class="card-icon">🚪</span>
+        <h3 class="card-title">Sign Out</h3>
+        <p class="card-description">Safely log out of your account when you're done</p>
+      </a>
+    </div>
   </div>
 </body>
 </html>

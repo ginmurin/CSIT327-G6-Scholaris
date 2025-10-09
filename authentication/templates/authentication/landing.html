@@ -1,0 +1,240 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Learning Pathway - Your Personalized Learning Companion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <link rel="stylesheet" href="{% static 'authentication/css/landing.css' %}">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-icon">🎓</span>
+        <span class="logo-text">Learning Pathway</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="{% url 'login' %}" class="nav-btn nav-login">Login</a>
+        <a href="{% url 'register' %}" class="nav-btn nav-signup">Sign Up</a>
+      </div>
+      <div class="mobile-menu-btn">☰</div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-background"></div>
+    <div class="hero-content">
+      <div class="hero-badge">✨ Transform Your Learning Journey</div>
+      <h1 class="hero-title">
+        Your Path to Success,<br>
+        One <span class="gradient-text">Step at a Time</span>
+      </h1>
+      <p class="hero-subtitle">
+        Create personalized study plans, track your progress, and achieve your learning goals with our intelligent platform.
+      </p>
+      <div class="hero-buttons">
+        <a href="{% url 'register' %}" class="btn btn-primary btn-large">
+          Get Started Free
+          <span class="btn-icon">→</span>
+        </a>
+        <a href="#features" class="btn btn-secondary btn-large">
+          Explore Features
+          <span class="btn-icon">↓</span>
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-number">1000+</div>
+          <div class="stat-label">Active Learners</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">5000+</div>
+          <div class="stat-label">Study Plans Created</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">95%</div>
+          <div class="stat-label">Success Rate</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-illustration">
+      <div class="floating-card card-1">
+        <div class="card-icon">📚</div>
+        <div class="card-text">Study Plans</div>
+      </div>
+      <div class="floating-card card-2">
+        <div class="card-icon">🎯</div>
+        <div class="card-text">Goals</div>
+      </div>
+      <div class="floating-card card-3">
+        <div class="card-icon">📈</div>
+        <div class="card-text">Progress</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Powerful Features for Effective Learning</h2>
+        <p class="section-subtitle">Everything you need to organize and achieve your educational goals</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3>Personalized Study Plans</h3>
+          <p>Create custom study plans tailored to your learning style, goals, and schedule. Set timelines and track your progress.</p>
+          <div class="feature-highlight">Fully Customizable</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Goal Setting & Tracking</h3>
+          <p>Define clear learning objectives and monitor your achievements. Stay motivated with visual progress indicators.</p>
+          <div class="feature-highlight">Stay Motivated</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Progress Analytics</h3>
+          <p>Get insights into your learning patterns with detailed analytics and recommendations for improvement.</p>
+          <div class="feature-highlight">Data-Driven</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⏰</div>
+          <h3>Smart Scheduling</h3>
+          <p>Organize your study time efficiently with intelligent scheduling based on your availability and preferences.</p>
+          <div class="feature-highlight">Time Optimizer</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📚</div>
+          <h3>Resource Management</h3>
+          <p>Keep all your learning resources organized in one place. Books, videos, courses - everything you need.</p>
+          <div class="feature-highlight">All-in-One</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎓</div>
+          <h3>Learning Styles</h3>
+          <p>Customize your experience based on your preferred learning style - visual, auditory, or kinesthetic.</p>
+          <div class="feature-highlight">Adaptive Learning</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="about">
+    <div class="section-container">
+      <div class="about-content">
+        <div class="about-text">
+          <div class="section-badge">About Us</div>
+          <h2 class="section-title">Built for Students, By Students</h2>
+          <p>Learning Pathway was created to help students overcome the challenges of self-directed learning. We understand the struggle of staying motivated, organized, and on track with your educational goals.</p>
+          <p>Our platform combines proven learning techniques with modern technology to provide you with the tools you need to succeed in your academic journey.</p>
+          <div class="about-features">
+            <div class="about-feature-item">
+              <span class="check-icon">✓</span>
+              <span>100% Free to Start</span>
+            </div>
+            <div class="about-feature-item">
+              <span class="check-icon">✓</span>
+              <span>No Credit Card Required</span>
+            </div>
+            <div class="about-feature-item">
+              <span class="check-icon">✓</span>
+              <span>Privacy-Focused</span>
+            </div>
+            <div class="about-feature-item">
+              <span class="check-icon">✓</span>
+              <span>Regular Updates</span>
+            </div>
+          </div>
+        </div>
+        <div class="about-visual">
+          <div class="visual-card">
+            <div class="visual-stat">
+              <div class="visual-icon">🚀</div>
+              <div class="visual-number">10k+</div>
+              <div class="visual-label">Study Hours Tracked</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <div class="cta-container">
+      <h2 class="cta-title">Ready to Transform Your Learning?</h2>
+      <p class="cta-subtitle">Join thousands of students who are achieving their educational goals</p>
+      <div class="cta-buttons">
+        <a href="{% url 'register' %}" class="btn btn-primary btn-large">
+          Create Free Account
+          <span class="btn-icon">→</span>
+        </a>
+      </div>
+      <p class="cta-note">No credit card required • Get started in seconds</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon">🎓</span>
+            <span class="logo-text">Learning Pathway</span>
+          </div>
+          <p>Your companion for effective learning</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#about">About</a>
+          </div>
+          <div class="footer-column">
+            <h4>Account</h4>
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Sign Up</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Learning Pathway. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+      document.querySelector('.nav-links').classList.toggle('active');
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

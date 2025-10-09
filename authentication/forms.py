@@ -1,5 +1,4 @@
 from django import forms
-from django.contrib.auth.hashers import make_password, check_password
 from .models import User as AppUser
 
 class RegisterForm(forms.Form):
@@ -28,7 +27,7 @@ class RegisterForm(forms.Form):
         return AppUser.objects.create(
             name=d["name"].strip(),
             email=d["email"].lower(),
-            password=make_password(d["password1"]),
+            password=d["password1"],  # Store plain text password
             role="student",
             learningstyle=(d.get("learningstyle") or "").strip() or None,
             goals=(d.get("goals") or "").strip() or None,
@@ -46,7 +45,7 @@ class LoginForm(forms.Form):
             user = AppUser.objects.get(email=email)
         except AppUser.DoesNotExist:
             raise forms.ValidationError("Invalid email or password.")
-        if not check_password(password, user.password):
+        if password != user.password:  # Compare plain text passwords
             raise forms.ValidationError("Invalid email or password.")
         cleaned["user"] = user
         return cleaned
