@@ -44,9 +44,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'authentication',
+    'studyplan',
 ]
 
-# LOGIN_REDIRECT_URL = "home"
+# Authentication settings
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'
 # LOGOUT_REDIRECT_URL = "login"
 
 

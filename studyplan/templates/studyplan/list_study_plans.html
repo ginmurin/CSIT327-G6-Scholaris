@@ -1,0 +1,91 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>My Study Plans</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <link rel="stylesheet" href="{% static 'studyplan/css/studyplan.css' %}">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 My Study Plans</h1>
+      <p class="welcome">Welcome back, {{ name }}!</p>
+    </div>
+
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="actions">
+      <a href="{% url 'create_study_plan' %}" class="btn btn-primary">+ Create New Study Plan</a>
+      <a href="{% url 'home' %}" class="btn btn-secondary">🏠 Back to Home</a>
+      <a href="{% url 'logout' %}" class="btn btn-secondary">🚪 Logout</a>
+    </div>
+
+    {% if study_plans %}
+      <div class="plans-grid">
+        {% for plan in study_plans %}
+          <div class="plan-card">
+            <div class="plan-header">
+              <h2>{{ plan.title }}</h2>
+              <div class="plan-meta">
+                <span class="meta-item">🎯 {{ plan.learning_objective }}</span>
+              </div>
+            </div>
+
+            <div class="plan-body">
+              {% if plan.description %}
+                <p class="description">{{ plan.description }}</p>
+              {% endif %}
+
+              <div class="plan-details">
+                <div class="detail-item">
+                  <span class="label">📅 Start Date:</span>
+                  <span class="value">{{ plan.start_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">📅 End Date:</span>
+                  <span class="value">{{ plan.end_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">⏱️ Hours/Week:</span>
+                  <span class="value">{{ plan.estimated_hours_per_week }} hours</span>
+                </div>
+                {% if plan.preferred_resources %}
+                  <div class="detail-item full-width">
+                    <span class="label">📖 Resources:</span>
+                    <span class="value">{{ plan.preferred_resources }}</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="plan-footer">
+              <div class="timestamps">
+                <small>Created: {{ plan.date_created|date:"M d, Y" }}</small>
+              </div>
+              <div class="plan-actions">
+                <a href="{% url 'edit_study_plan' plan.id %}" class="btn-edit">✏️ Edit</a>
+                <a href="{% url 'delete_study_plan' plan.id %}" class="btn-delete">🗑️ Delete</a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <h2>No Study Plans Yet</h2>
+        <p>Start your learning journey by creating your first study plan!</p>
+        <a href="{% url 'create_study_plan' %}" class="btn btn-primary">Create Your First Plan</a>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

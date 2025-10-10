@@ -3,74 +3,122 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Register</title>
-  <link rel="stylesheet" href="{% static 'authentication/css/register.css' %}">
+  <title>Join Learning Pathway - Create Your Account</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <link rel="stylesheet" href="{% static 'authentication/css/register.css' %}?v=9">
 </head>
 <body>
+  <!-- Navigation -->
+  <nav class="top-nav">
+    <a href="{% url 'landing' %}" class="nav-back">
+      <span class="back-icon">←</span>
+      <span class="nav-logo">🎓 Learning Pathway</span>
+    </a>
+  </nav>
+
+  <!-- Floating academic icons -->
+  <div class="floating-icons">
+    <div class="icon">📚</div>
+    <div class="icon">🎯</div>
+    <div class="icon">💡</div>
+    <div class="icon">✨</div>
+  </div>
+
   <div class="container">
-    <h1>Create Account</h1>
-
-    {# Show ALL errors clearly #}
-    {% if form.errors or form.non_field_errors %}
-      <div class="error" style="background:#fee;border:1px solid #f99;padding:10px;margin-bottom:12px;">
-        <strong>Form errors:</strong>
-        <ul style="margin:8px 0 0 18px;">
-          {% for field in form %}
-            {% for error in field.errors %}
-              <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-            {% endfor %}
-          {% endfor %}
-          {% for error in form.non_field_errors %}
-            <li>{{ error }}</li>
-          {% endfor %}
-        </ul>
+    <div class="container-inner">
+      <!-- Header -->
+      <div class="register-header">
+        <div class="register-icon">🎓</div>
+        <h1>Join Learning Pathway</h1>
+        <p class="subtitle">Start your personalized learning journey today</p>
+        <div class="step-indicator">
+          <div class="step active"></div>
+          <div class="step active"></div>
+          <div class="step active"></div>
+        </div>
       </div>
-    {% endif %}
 
-    <form method="post">
-      {% csrf_token %}
+      <!-- Registration Form -->
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+          <label for="id_name">Full Name</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <ul class="errorlist">
+              {% for error in form.name.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <p>
-        {{ form.name.label_tag }}<br>
-        {{ form.name }}
-        {{ form.name.errors }}
-      </p>
+        <div class="form-group">
+          <label for="id_email">Email Address</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+            <ul class="errorlist">
+              {% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <p>
-        {{ form.email.label_tag }}<br>
-        {{ form.email }}
-        {{ form.email.errors }}
-      </p>
+        <div class="form-group">
+          <label for="id_password1">Password</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}
+            <ul class="errorlist">
+              {% for error in form.password1.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <p>
-        {{ form.password1.label_tag }}<br>
-        {{ form.password1 }}
-        {{ form.password1.errors }}
-      </p>
+        <div class="form-group">
+          <label for="id_password2">Confirm Password</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}
+            <ul class="errorlist">
+              {% for error in form.password2.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <p>
-        {{ form.password2.label_tag }}<br>
-        {{ form.password2 }}
-        {{ form.password2.errors }}
-      </p>
+        <div class="form-group full-width">
+          <label for="id_learningstyle">Learning Style</label>
+          {{ form.learningstyle }}
+          {% if form.learningstyle.errors %}
+            <ul class="errorlist">
+              {% for error in form.learningstyle.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <p>
-        {{ form.learningstyle.label_tag }}<br>
-        {{ form.learningstyle }}
-        {{ form.learningstyle.errors }}
-      </p>
+        <div class="form-group full-width">
+          <label for="id_goals">Your Goals</label>
+          {{ form.goals }}
+          <span class="help-text">Share what you want to achieve with your learning journey</span>
+          {% if form.goals.errors %}
+            <ul class="errorlist">
+              {% for error in form.goals.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <p>
-        {{ form.goals.label_tag }}<br>
-        {{ form.goals }}
-        {{ form.goals.errors }}
-      </p>
+        <button type="submit">🚀 Create My Account</button>
+      </form>
 
-      <button type="submit">Register</button>
-
-      <a href="{% url 'login' %}" class="btn">Already have an account? Click here to login</a>
+      <!-- Footer -->
+      <div class="form-footer">
+        <p>Already have an account?</p>
+        <a href="{% url 'login' %}">Sign In →</a>
+        
+        <div class="features">
+          <div class="feature-badge">Free Forever</div>
+          <div class="feature-badge">Personalized Plans</div>
+          <div class="feature-badge">Track Progress</div>
+        </div>
       </div>
-    </form>
+    </div>
   </div>
 </body>
 </html>

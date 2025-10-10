@@ -3,6 +3,10 @@ from django.views import View
 from .forms import RegisterForm, LoginForm
 from django.views.decorators.cache import never_cache
 
+def landing_view(request):
+    """Public landing page - accessible to everyone"""
+    return render(request, "authentication/landing.html")
+
 class RegisterView(View):
     template_name = "authentication/register.html"
 
