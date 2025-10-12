@@ -1,0 +1,57 @@
+# Django Framework
+Django==5.2.7
+asgiref==3.9.2
+sqlparse==0.5.3
+tzdata==2025.2
+
+# Database
+dj-database-url==3.0.1
+psycopg2==2.9.10
+
+# Google Gemini AI
+google-generativeai==0.8.5
+google-ai-generativelanguage==0.6.15
+google-api-core==2.26.0
+google-api-python-client==2.184.0
+google-auth==2.41.1
+google-auth-httplib2==0.2.0
+googleapis-common-protos==1.70.0
+grpcio==1.75.1
+grpcio-status==1.71.2
+
+# Environment Variables
+python-dotenv==1.1.1
+
+# Image Processing
+pillow==11.3.0
+
+# HTTP and Networking
+requests==2.32.5
+urllib3==2.5.0
+httplib2==0.31.0
+certifi==2025.10.5
+charset-normalizer==3.4.3
+idna==3.10
+
+# Protocol Buffers and API
+proto-plus==1.26.1
+protobuf==5.29.5
+uritemplate==4.2.0
+
+# Pydantic for Data Validation
+pydantic==2.12.0
+pydantic_core==2.41.1
+annotated-types==0.7.0
+typing_extensions==4.15.0
+typing-inspection==0.4.2
+
+# Utilities
+tqdm==4.67.1
+cachetools==6.2.0
+colorama==0.4.6
+pyparsing==3.2.5
+
+# Authentication
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+rsa==4.9.1

@@ -6,4 +6,5 @@ urlpatterns = [
     path('create/', views.create_study_plan, name='create_study_plan'),
     path('edit/<int:plan_id>/', views.edit_study_plan, name='edit_study_plan'),
     path('delete/<int:plan_id>/', views.delete_study_plan, name='delete_study_plan'),
+    path('<int:plan_id>/resources/', views.get_resources, name='study_plan_resources'),
 ]
