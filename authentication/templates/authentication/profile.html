@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Learning Pathway</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'authentication/css/profile.css' %}">
+</head>
+<body>
+    <div class="profile-container">
+        <!-- Header -->
+        <header class="profile-header">
+            <div class="header-content">
+                <h1>My Profile</h1>
+                <div class="header-actions">
+                    <a href="{% url 'home' %}" class="btn-back">← Back to Dashboard</a>
+                    <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Success/Error Messages -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Profile Content -->
+        <div class="profile-content">
+            <!-- Profile Picture Section -->
+            <div class="profile-picture-section">
+                <div class="picture-preview">
+                    {% if user.profile_picture %}
+                        <img src="/media/{{ user.profile_picture }}" alt="Profile Picture" class="profile-img">
+                    {% else %}
+                        <div class="profile-img-placeholder">
+                            <span class="placeholder-icon">{{ user.name|first|upper }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="picture-info">
+                    <h2>{{ user.name }}</h2>
+                    <p class="user-email">{{ user.email }}</p>
+                    <p class="user-role">{{ user.role|title }}</p>
+                </div>
+            </div>
+
+            <!-- Profile Form -->
+            <div class="profile-form-section">
+                <h3>Update Your Profile</h3>
+                <p class="section-description">Changes to your name will be reflected across the application.</p>
+                
+                <form method="POST" enctype="multipart/form-data" class="profile-form">
+                    {% csrf_token %}
+                    
+                    <!-- Name Field -->
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <span class="error-message">{{ form.name.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Learning Style Field -->
+                    <div class="form-group">
+                        <label for="{{ form.learningstyle.id_for_label }}">{{ form.learningstyle.label }}</label>
+                        {{ form.learningstyle }}
+                        {% if form.learningstyle.errors %}
+                            <span class="error-message">{{ form.learningstyle.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Goals Field -->
+                    <div class="form-group">
+                        <label for="{{ form.goals.id_for_label }}">{{ form.goals.label }}</label>
+                        {{ form.goals }}
+                        {% if form.goals.errors %}
+                            <span class="error-message">{{ form.goals.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Timezone Field -->
+                    <div class="form-group">
+                        <label for="{{ form.timezone.id_for_label }}">{{ form.timezone.label }}</label>
+                        {{ form.timezone }}
+                        {% if form.timezone.errors %}
+                            <span class="error-message">{{ form.timezone.errors.0 }}</span>
+                        {% endif %}
+                        <small class="field-help">System content will adapt to your timezone</small>
+                    </div>
+
+                    <!-- Language Field -->
+                    <div class="form-group">
+                        <label for="{{ form.language.id_for_label }}">{{ form.language.label }}</label>
+                        {{ form.language }}
+                        {% if form.language.errors %}
+                            <span class="error-message">{{ form.language.errors.0 }}</span>
+                        {% endif %}
+                        <small class="field-help">Choose your preferred language</small>
+                    </div>
+
+                    <!-- Profile Picture Field -->
+                    <div class="form-group">
+                        <label for="{{ form.profile_picture.id_for_label }}">
+                            {{ form.profile_picture.label }}
+                        </label>
+                        {{ form.profile_picture }}
+                        {% if form.profile_picture.errors %}
+                            <span class="error-message">{{ form.profile_picture.errors.0 }}</span>
+                        {% endif %}
+                        <small class="field-help">{{ form.profile_picture.help_text }}</small>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn-save">Save Changes</button>
+                        <a href="{% url 'home' %}" class="btn-cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Info -->
+        <div class="account-info">
+            <h3>Account Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Member Since:</span>
+                    <span class="info-value">{{ user.created_at|date:"F d, Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Login:</span>
+                    <span class="info-value">{{ user.last_login|date:"F d, Y g:i A"|default:"Never" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Learning Style:</span>
+                    <span class="info-value">{{ user.learningstyle }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Time Zone:</span>
+                    <span class="info-value">{{ user.timezone|default:"UTC" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Language:</span>
+                    <span class="info-value">{{ user.language|default:"en" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Role:</span>
+                    <span class="info-value">{{ user.role|title }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="security-settings">
+            <h3>Security Settings</h3>
+            <p class="section-description">Manage your email and password settings.</p>
+            <div class="settings-actions">
+                <a href="{% url 'change_email' %}" class="settings-btn">
+                    <div class="btn-icon">📧</div>
+                    <div class="btn-content">
+                        <strong>Change Email</strong>
+                        <small>Update your email address</small>
+                    </div>
+                    <span class="btn-arrow">→</span>
+                </a>
+                <a href="{% url 'change_password' %}" class="settings-btn">
+                    <div class="btn-icon">�</div>
+                    <div class="btn-content">
+                        <strong>Change Password</strong>
+                        <small>Update your password</small>
+                    </div>
+                    <span class="btn-arrow">→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Preview uploaded image
+        document.querySelector('#id_profile_picture').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Check file size (5MB max)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size too large. Maximum allowed size is 5MB.');
+                    e.target.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.querySelector('.profile-img, .profile-img-placeholder');
+                    if (preview.tagName === 'IMG') {
+                        preview.src = e.target.result;
+                    } else {
+                        const newImg = document.createElement('img');
+                        newImg.src = e.target.result;
+                        newImg.className = 'profile-img';
+                        preview.replaceWith(newImg);
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Auto-dismiss success messages
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert-success');
+            alerts.forEach(alert => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

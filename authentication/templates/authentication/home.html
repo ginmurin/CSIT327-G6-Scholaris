@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Learning Pathway</title>
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-  <link rel="stylesheet" href="{% static 'authentication/css/home.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'authentication/css/home.css' %}?v=6">
   <script>
     // If user presses Back and the page was BF-cached, force a reload
     window.addEventListener('pageshow', function (e) {
@@ -19,10 +19,22 @@
     <!-- Header -->
     <header class="dashboard-header">
       <div class="welcome-section">
-        <h1>Welcome back, {{ name }}! 🎓</h1>
-        <p>Ready to continue your learning journey?</p>
+        <div class="profile-avatar">
+          {% if user.profile_picture %}
+            <img src="/media/{{ user.profile_picture }}" alt="{{ user.name }}" class="avatar-img">
+          {% else %}
+            <div class="avatar-placeholder">{{ user.name|first|upper }}</div>
+          {% endif %}
+        </div>
+        <div class="welcome-text">
+          <h1>Welcome back, {{ name }}! 🎓</h1>
+          <p>{{ user.learningstyle }} Learner - Ready to continue your journey?</p>
+        </div>
       </div>
       <div class="header-actions">
+        <a href="{% url 'profile' %}" class="btn btn-profile">
+          👤 Profile
+        </a>
         <a href="{% url 'create_study_plan' %}" class="btn btn-primary">
           ✨ Create Study Plan
         </a>
@@ -36,7 +48,7 @@
     <div class="quick-stats">
       <div class="stat-card">
         <span class="stat-icon">📚</span>
-        <div class="stat-value">0</div>
+        <div class="stat-value">{{ study_plan_count }}</div>
         <div class="stat-label">Study Plans</div>
       </div>
       <div class="stat-card">
@@ -55,6 +67,155 @@
         <div class="stat-label">Day Streak</div>
       </div>
     </div>
+
+    <!-- My Study Plans Section -->
+    {% if study_plans %}
+    <div class="study-plans-section">
+      <div class="section-header">
+        <h2>📚 My Active Study Plans</h2>
+        <a href="{% url 'list_study_plans' %}" class="view-all-link">View All →</a>
+      </div>
+      
+      <div class="study-plans-grid">
+        {% for plan in study_plans %}
+        <div class="study-plan-card">
+          <div class="plan-header">
+            <h3 class="plan-title">{{ plan.title }}</h3>
+            <span class="plan-badge">Active</span>
+          </div>
+          
+          <p class="plan-objective">{{ plan.learning_objective|truncatewords:15 }}</p>
+          
+          <div class="plan-details">
+            <div class="plan-detail-item">
+              <span class="detail-icon">📅</span>
+              <span class="detail-text">{{ plan.start_date|date:"M d" }} - {{ plan.end_date|date:"M d" }}</span>
+            </div>
+            <div class="plan-detail-item">
+              <span class="detail-icon">⏰</span>
+              <span class="detail-text">{{ plan.estimated_hours_per_week }}h/week</span>
+            </div>
+          </div>
+          
+          <div class="plan-actions-home">
+            <a href="{% url 'study_plan_resources' plan.id %}" class="plan-btn btn-resources-home">
+              <span class="btn-icon">🔗</span>
+              <span>Resources</span>
+            </a>
+            <a href="{% url 'edit_study_plan' plan.id %}" class="plan-btn btn-edit-home">
+              <span class="btn-icon">✏️</span>
+              <span>Edit</span>
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if recommendations %}
+    <!-- AI-Powered Recommendations -->
+    <div class="ai-recommendations">
+      <div class="ai-header">
+        <h2>🤖 Your Personalized Learning Plan</h2>
+        <p>AI-powered recommendations based on your {{ user.learningstyle }} learning style</p>
+      </div>
+
+      <div class="recommendations-grid">
+        <!-- Study Techniques -->
+        <div class="recommendation-card">
+          <h3>📝 Recommended Study Techniques</h3>
+          <ul class="technique-list">
+            {% for technique in recommendations.study_techniques %}
+              <li>{{ technique }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Resources - PROMINENT SECTION -->
+        <div class="recommendation-card card-resources-featured">
+          <h3>� Curated Learning Resources</h3>
+          <p class="resources-subtitle">Click to start learning instantly!</p>
+          <div class="resources-list-featured">
+            {% for resource in recommendations.recommended_resources %}
+              <a href="{{ resource.url|default:'#' }}" target="_blank" class="resource-card-clickable">
+                <div class="resource-card-content">
+                  <div class="resource-card-header-inline">
+                    <span class="resource-badge-large badge-{{ resource.type }}">
+                      {% if resource.type == "video" %}📺 Video
+                      {% elif resource.type == "article" %}📄 Article
+                      {% elif resource.type == "practice" %}🎯 Practice
+                      {% else %}📖 {{ resource.type|title }}
+                      {% endif %}
+                    </span>
+                    {% if resource.platform %}
+                      <span class="resource-platform-large">{{ resource.platform }}</span>
+                    {% endif %}
+                  </div>
+                  <h4 class="resource-title-large">{{ resource.title }}</h4>
+                  <p class="resource-desc-large">{{ resource.description|truncatewords:15 }}</p>
+                  <div class="resource-cta-bar">
+                    <span class="cta-text">Open Resource</span>
+                    <span class="cta-arrow">→</span>
+                  </div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Time Allocation -->
+        <div class="recommendation-card">
+          <h3>⏰ Suggested Study Schedule</h3>
+          <div class="time-allocation">
+            <div class="time-main">
+              <span class="time-value">{{ recommendations.time_allocation.daily_minutes }}</span>
+              <span class="time-label">minutes/day</span>
+            </div>
+            <div class="time-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label">Theory:</span>
+                <span class="breakdown-value">{{ recommendations.time_allocation.breakdown.theory }}%</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label">Practice:</span>
+                <span class="breakdown-value">{{ recommendations.time_allocation.breakdown.practice }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones -->
+        <div class="recommendation-card">
+          <h3>🎯 Learning Milestones</h3>
+          <ul class="milestone-list">
+            {% for milestone in recommendations.milestones %}
+              <li><span class="milestone-icon">✓</span> {{ milestone }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Tips -->
+        <div class="recommendation-card card-highlight">
+          <h3>💡 Pro Tips for {{ user.learningstyle }} Learners</h3>
+          <ul class="tips-list">
+            {% for tip in recommendations.tips %}
+              <li>{{ tip }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- User Goals -->
+        <div class="recommendation-card card-goals">
+          <h3>🎯 Your Learning Goals</h3>
+          <p class="goals-text">{{ user.goals }}</p>
+          <div class="goals-action">
+            <span class="goals-reminder">Keep these in mind as you create study plans!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
     <!-- Action Cards -->
     <div class="action-cards">

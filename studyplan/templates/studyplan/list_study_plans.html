@@ -71,6 +71,7 @@
                 <small>Created: {{ plan.date_created|date:"M d, Y" }}</small>
               </div>
               <div class="plan-actions">
+                <a href="{% url 'study_plan_resources' plan.id %}" class="btn-resources">📚 Resources</a>
                 <a href="{% url 'edit_study_plan' plan.id %}" class="btn-edit">✏️ Edit</a>
                 <a href="{% url 'delete_study_plan' plan.id %}" class="btn-delete">🗑️ Delete</a>
               </div>

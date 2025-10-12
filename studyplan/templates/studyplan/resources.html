@@ -1,0 +1,95 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Learning Resources - {{ study_plan.title }}</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <link rel="stylesheet" href="{% static 'studyplan/css/studyplan.css' %}?v=3">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Learning Resources</h1>
+      <p class="welcome">{{ study_plan.title }}</p>
+      <div class="user-profile-badge">
+        <span class="badge-icon">🎯</span>
+        <span class="badge-text">{{ user.learningstyle }} Learner</span>
+      </div>
+    </div>
+
+    <!-- AI Resource Recommendations -->
+    <div class="resources-container">
+      <div class="resources-header">
+        <h2>🤖 AI-Curated Learning Resources</h2>
+        <p>Handpicked resources matching your {{ user.learningstyle }} learning style</p>
+      </div>
+
+      <div class="resources-grid">
+        {% for resource in resources %}
+        <div class="resource-card">
+          <div class="resource-card-header">
+            <span class="resource-type-badge badge-{{ resource.type }}">
+              {% if resource.type == "video" %}📺 Video
+              {% elif resource.type == "article" %}📄 Article
+              {% elif resource.type == "interactive" %}💻 Interactive
+              {% elif resource.type == "practice" %}🎯 Practice
+              {% elif resource.type == "course" %}📚 Course
+              {% else %}📖 Resource
+              {% endif %}
+            </span>
+            {% if resource.difficulty %}
+              <span class="difficulty-badge badge-{{ resource.difficulty }}">
+                {{ resource.difficulty|title }}
+              </span>
+            {% endif %}
+          </div>
+
+          <h3 class="resource-title">{{ resource.title }}</h3>
+          
+          {% if resource.platform %}
+            <div class="resource-platform-tag">
+              <span class="platform-icon">🌐</span>
+              <span>{{ resource.platform }}</span>
+            </div>
+          {% endif %}
+
+          {% if resource.url %}
+            <a href="{{ resource.url }}" target="_blank" class="resource-cta">
+              <span>Open Resource</span>
+              <span class="cta-icon">→</span>
+            </a>
+          {% endif %}
+
+          {% if resource.description %}
+            <p class="resource-description">{{ resource.description }}</p>
+          {% endif %}
+
+          {% if resource.estimated_time %}
+            <div class="resource-meta">
+              <span class="meta-icon">⏱️</span>
+              <span>{{ resource.estimated_time }}</span>
+            </div>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="no-resources">
+          <p>No specific resources found. Try searching on:</p>
+          <ul>
+            <li><a href="https://www.youtube.com/results?search_query={{ study_plan.title|urlencode }}+tutorial" target="_blank">YouTube</a></li>
+            <li><a href="https://www.freecodecamp.org/learn" target="_blank">freeCodeCamp</a></li>
+            <li><a href="https://www.google.com/search?q={{ study_plan.title|urlencode }}+learning+resources" target="_blank">Google</a></li>
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <a href="{% url 'list_study_plans' %}" class="btn btn-secondary">← Back to Study Plans</a>
+      <a href="{% url 'edit_study_plan' study_plan.id %}" class="btn btn-primary">Edit Study Plan</a>
+    </div>
+  </div>
+</body>
+</html>

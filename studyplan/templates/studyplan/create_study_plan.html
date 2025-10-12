@@ -3,16 +3,60 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Create Study Plan</title>
+  <title>Create Study Plan - Learning Pathway</title>
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-  <link rel="stylesheet" href="{% static 'studyplan/css/studyplan.css' %}">
+  <link rel="stylesheet" href="{% static 'studyplan/css/studyplan.css' %}?v=2">
 </head>
 <body>
   <div class="container form-container">
     <div class="header">
       <h1>✨ Create New Study Plan</h1>
-      <p>Plan your learning journey</p>
+      <p>Plan your learning journey with AI-powered recommendations</p>
+      {% if user %}
+        <div class="user-profile-badge">
+          <span class="badge-icon">🎯</span>
+          <span class="badge-text">{{ user.learningstyle }} Learner</span>
+        </div>
+      {% endif %}
     </div>
+
+    {% if ai_recommendations %}
+    <!-- AI Recommendations Helper -->
+    <div class="ai-helper-box">
+      <div class="ai-helper-header">
+        <h3>🤖 AI Study Planning Assistant</h3>
+        <p>Here are personalized tips to help you create an effective study plan:</p>
+      </div>
+      
+      <div class="ai-tips-grid">
+        <div class="ai-tip-card">
+          <h4>📝 Recommended Techniques</h4>
+          <ul class="compact-list">
+            {% for technique in ai_recommendations.study_techniques|slice:":3" %}
+              <li>{{ technique }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        
+        <div class="ai-tip-card">
+          <h4>⏰ Time Suggestion</h4>
+          <div class="time-suggestion">
+            <div class="time-big">{{ ai_recommendations.time_allocation.daily_minutes }} min</div>
+            <div class="time-label">per day</div>
+          </div>
+        </div>
+        
+        <div class="ai-tip-card">
+          <h4>💡 Quick Tips</h4>
+          <ul class="compact-list">
+            {% for tip in ai_recommendations.tips|slice:":2" %}
+              <li>{{ tip }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
     <form method="post" class="study-plan-form">
       {% csrf_token %}
@@ -21,6 +65,7 @@
         <div class="form-group full-width">
           <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
           {{ form.title }}
+          <span class="field-hint">💡 What topic or subject do you want to study?</span>
           {% if form.title.errors %}
             <span class="error">{{ form.title.errors.0 }}</span>
           {% endif %}
@@ -29,6 +74,7 @@
         <div class="form-group full-width">
           <label for="{{ form.learning_objective.id_for_label }}">{{ form.learning_objective.label }}</label>
           {{ form.learning_objective }}
+          <span class="field-hint">🎯 What do you want to achieve by the end?</span>
           {% if form.learning_objective.errors %}
             <span class="error">{{ form.learning_objective.errors.0 }}</span>
           {% endif %}
@@ -37,6 +83,7 @@
         <div class="form-group full-width">
           <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
           {{ form.description }}
+          <span class="field-hint">📚 Describe your study plan in detail</span>
           {% if form.description.errors %}
             <span class="error">{{ form.description.errors.0 }}</span>
           {% endif %}
@@ -61,6 +108,7 @@
         <div class="form-group full-width">
           <label for="{{ form.preferred_resources.id_for_label }}">{{ form.preferred_resources.label }}</label>
           {{ form.preferred_resources }}
+          <span class="field-hint">📖 Books, videos, online courses, etc.</span>
           {% if form.preferred_resources.errors %}
             <span class="error">{{ form.preferred_resources.errors.0 }}</span>
           {% endif %}
@@ -69,6 +117,7 @@
         <div class="form-group">
           <label for="{{ form.estimated_hours_per_week.id_for_label }}">{{ form.estimated_hours_per_week.label }}</label>
           {{ form.estimated_hours_per_week }}
+          <span class="field-hint">⏱️ How many hours per week?</span>
           {% if form.estimated_hours_per_week.errors %}
             <span class="error">{{ form.estimated_hours_per_week.errors.0 }}</span>
           {% endif %}
@@ -76,7 +125,7 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Create Study Plan</button>
+        <button type="submit" class="btn btn-primary">🚀 Create Study Plan</button>
         <a href="{% url 'list_study_plans' %}" class="btn btn-secondary">Cancel</a>
       </div>
     </form>
