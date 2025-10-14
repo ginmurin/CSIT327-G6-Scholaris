@@ -7,11 +7,16 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-e3^=st%k(@w=y+nqtj2@wji41-b&3ajx8rro(3(jp=s7=1c!8y'
-DEBUG = True
+# Security Settings - Use environment variables in production
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-e3^=st%k(@w=y+nqtj2@wji41-b&3ajx8rro(3(jp=s7=1c!8y')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-ALLOWED_HOSTS = []
+
+# ALLOWED_HOSTS - Allow Render domain and localhost
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Add .onrender.com domains
+ALLOWED_HOSTS += ['.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
