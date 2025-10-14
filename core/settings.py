@@ -10,7 +10,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security Settings - Use environment variables in production
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-e3^=st%k(@w=y+nqtj2@wji41-b&3ajx8rro(3(jp=s7=1c!8y')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-STATIC_URL = "static/"
+
+# Static files configuration
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # ALLOWED_HOSTS - Allow Render domain and localhost
@@ -37,6 +40,7 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyCa30VTsQB8jzY9ACk_kPeTd0FHQ-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -93,7 +97,8 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+# WhiteNoise configuration for static files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
