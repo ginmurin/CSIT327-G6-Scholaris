@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.hashers import make_password, check_password
 from .models import User as AppUser
 
 class RegisterForm(forms.Form):
@@ -114,7 +115,7 @@ class RegisterForm(forms.Form):
         return AppUser.objects.create(
             name=d["name"].strip(),
             email=d["email"].lower(),
-            password=d["password1"],  # Store plain text password (NOTE: In production, use hashing!)
+            password=make_password(d["password1"]),  # Hash password securely
             role="student",
             learningstyle=d["learningstyle"],
             goals=d["goals"].strip(),
@@ -132,7 +133,7 @@ class LoginForm(forms.Form):
             user = AppUser.objects.get(email=email)
         except AppUser.DoesNotExist:
             raise forms.ValidationError("Invalid email or password.")
-        if password != user.password:  # Compare plain text passwords
+        if not check_password(password, user.password):  # Compare hashed passwords securely
             raise forms.ValidationError("Invalid email or password.")
         cleaned["user"] = user
         return cleaned
@@ -150,6 +151,17 @@ class ProfileForm(forms.ModelForm):
         label="Profile Picture",
         help_text="Max file size: 5MB. Allowed formats: JPG, PNG, GIF",
         widget=forms.FileInput(attrs={'accept': 'image/jpeg,image/png,image/gif'})
+    )
+    
+    learningstyle = forms.ChoiceField(
+        choices=[
+            ('Visual', 'Visual - Learn through images, diagrams, and videos'),
+            ('Auditory', 'Auditory - Learn through listening and discussions'),
+            ('Kinesthetic', 'Kinesthetic - Learn through hands-on activities'),
+            ('Reading/Writing', 'Reading/Writing - Learn through text and notes')
+        ],
+        required=True,
+        label="Learning Style"
     )
     
     timezone = forms.ChoiceField(
@@ -297,7 +309,7 @@ class ChangeEmailForm(forms.Form):
     
     def clean_current_password(self):
         password = self.cleaned_data.get('current_password')
-        if self.user and self.user.password != password:
+        if self.user and not check_password(password, self.user.password):
             raise forms.ValidationError("Current password is incorrect.")
         return password
     
@@ -343,7 +355,7 @@ class ChangePasswordForm(forms.Form):
     
     def clean_current_password(self):
         password = self.cleaned_data.get('current_password')
-        if self.user and self.user.password != password:
+        if self.user and not check_password(password, self.user.password):
             raise forms.ValidationError("Current password is incorrect.")
         return password
     

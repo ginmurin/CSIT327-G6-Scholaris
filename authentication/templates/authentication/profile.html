@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Learning Pathway</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     {% load static %}
-    <link rel="stylesheet" href="{% static 'authentication/css/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'authentication/css/profile.css' %}?v=200">
 </head>
 <body>
     <div class="profile-container">
@@ -37,7 +40,7 @@
             <div class="profile-picture-section">
                 <div class="picture-preview">
                     {% if user.profile_picture %}
-                        <img src="/media/{{ user.profile_picture }}" alt="Profile Picture" class="profile-img">
+                        <img src="{{ user.profile_picture }}" alt="Profile Picture" class="profile-img">
                     {% else %}
                         <div class="profile-img-placeholder">
                             <span class="placeholder-icon">{{ user.name|first|upper }}</span>
@@ -172,7 +175,7 @@
                     <span class="btn-arrow">→</span>
                 </a>
                 <a href="{% url 'change_password' %}" class="settings-btn">
-                    <div class="btn-icon">�</div>
+                    <div class="btn-icon">🔒</div>
                     <div class="btn-content">
                         <strong>Change Password</strong>
                         <small>Update your password</small>

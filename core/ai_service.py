@@ -3,24 +3,14 @@ from django.conf import settings
 import json
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+# Use the correct model name from Google AI Studio
+model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 
 class LearningAIService:
     
     @staticmethod
     def generate_study_recommendations(learning_style, goals, topic=None):
-        """
-        Generate personalized study recommendations based on learning style and goals
-        
-        Args:
-            learning_style: User's preferred learning style (Visual, Auditory, etc.)
-            goals: User's learning goals
-            topic: Optional specific topic to focus on
-            
-        Returns:
-            dict: Structured recommendations including resources, techniques, and schedule
-        """
         prompt = f"""
         You are an expert educational advisor. Create personalized study recommendations for a student with the following profile:
         
@@ -88,18 +78,6 @@ class LearningAIService:
     
     @staticmethod
     def generate_quiz(topic, difficulty="medium", num_questions=5, learning_objective=None):
-        """
-        Generate quiz questions based on topic and difficulty
-        
-        Args:
-            topic: Subject or topic for the quiz
-            difficulty: easy, medium, or hard
-            num_questions: Number of questions to generate
-            learning_objective: Optional specific learning objective
-            
-        Returns:
-            dict: Quiz with questions, options, correct answers, and explanations
-        """
         prompt = f"""
         Create a {difficulty} difficulty quiz about: {topic}
         {f'Learning Objective: {learning_objective}' if learning_objective else ''}
@@ -164,16 +142,6 @@ class LearningAIService:
     
     @staticmethod
     def analyze_progress(quiz_results, learning_style):
-        """
-        Analyze quiz results and provide personalized feedback
-        
-        Args:
-            quiz_results: List of quiz results with scores
-            learning_style: User's learning style
-            
-        Returns:
-            dict: Analysis with strengths, weaknesses, and recommendations
-        """
         prompt = f"""
         Analyze this student's quiz performance:
         
@@ -222,24 +190,39 @@ class LearningAIService:
             }
     
     @staticmethod
-    def suggest_resources(topic, learning_style, resource_type="all"):
-        """
-        Suggest learning resources based on topic and learning style
-        
-        Args:
-            topic: Topic to find resources for
-            learning_style: User's learning style
-            resource_type: Type of resource (video, article, practice, all)
+    def suggest_resources(topic, learning_style, resource_type="all", context=None):
+        # Build enhanced prompt with full context
+        context_info = ""
+        if context:
+            # Use learning style from context if provided, otherwise use parameter
+            actual_learning_style = context.get('learning_style', learning_style)
             
-        Returns:
-            list: Curated list of resource suggestions WITH REAL URLS
+            context_info = f"""
+        
+        STUDY PLAN DETAILS:
+        - Learning Style: {actual_learning_style} (CRITICAL: Prioritize {actual_learning_style}-friendly resources!)
+        - Study Plan Description: {context.get('description', 'Not provided')}
+        - Learning Objective: {context.get('learning_objective', 'Not specified')}
+        - Preferred Resource Types: {context.get('preferred_resources', 'Any type')}
+        - Study Duration: {context.get('duration', 'Not specified')}
+        - Time Commitment: {context.get('hours_per_week', 'Flexible')}
+        
+        IMPORTANT: Recommend resources that specifically help achieve the Learning Objective stated above.
+        Focus on resources that match:
+        1. Their {actual_learning_style} learning style (MOST IMPORTANT)
+        2. The specific learning objective they want to achieve
+        3. Their preferred resource formats
+        4. Their study timeline and time commitment
         """
+            learning_style = actual_learning_style  # Update to use context value
+        
         prompt = f"""
         You are a learning resource curator. Find 7 REAL, SPECIFIC learning resources with DIRECT URLs for:
         
         Topic: {topic}
         Learning Style: {learning_style}
         Resource Type: {resource_type}
+        {context_info}
         
         CRITICAL REQUIREMENTS:
         1. Provide DIRECT URLs to specific resources (NOT search pages, NOT "youtube.com/results")
@@ -310,17 +293,11 @@ class LearningAIService:
                 return LearningAIService._get_curated_fallback_resources(topic, learning_style)
                 
         except Exception as e:
-            print(f"AI resource generation error: {e}")
             # Use curated fallback resources
             return LearningAIService._get_curated_fallback_resources(topic, learning_style)
     
     @staticmethod
     def _get_curated_fallback_resources(topic, learning_style):
-        """
-        Curated fallback resources with REAL URLs when AI fails
-        Returns high-quality resources for common topics
-        """
-        
         # Extensive curated resource database with REAL URLs
         curated_resources = {
             "python": [
@@ -442,11 +419,6 @@ class LearningAIService:
     
     @staticmethod
     def get_topic_specific_resources(topic, learning_style):
-        """
-        Get curated resources with real links for study plan creation
-        This method provides INSTANT, pre-curated resources for common topics
-        """
-        
         # Common resource databases by topic
         resource_db = {
             "python": [
@@ -517,148 +489,151 @@ class LearningAIService:
         return matching_resources[:5]  # Return top 5
 
     @staticmethod
-    def get_smart_resources(topic, learning_style, resource_type="all", limit=5):
-        """
-        Smart resource recommendation system that:
-        1. First checks database for existing resources
-        2. If found, returns diverse resources (not just most recommended)
-        3. If not enough found, generates NEW resources via AI
-        4. Saves new resources to database for future use
-        5. Tracks recommendation counts to avoid repetition
-        
-        Args:
-            topic: Topic to find resources for
-            learning_style: User's learning style
-            resource_type: Type of resource (video, article, practice, all)
-            limit: Number of resources to return (default 5)
-            
-        Returns:
-            list: Smart, diverse list of resources
-        """
-        from resources.models import Resource  # Import here to avoid circular import
+    def get_smart_resources(topic, learning_style, resource_type="all", limit=5, context=None):
+        from resources.models import Resource
         from django.db.models import Q
+        from django.db import connection
         
-        # Step 1: Query database for existing resources
-        query = Q(topic__icontains=topic)
-        
-        if resource_type != "all":
-            query &= Q(resource_type=resource_type)
-        
-        # Get existing resources, ordered by LEAST recommended first (to diversify)
-        existing_resources = list(Resource.objects.filter(query).order_by('times_recommended')[:limit * 2])
-        
-        # Step 2: If we have enough diverse resources, use them
-        if len(existing_resources) >= limit:
-            # Mix of least and most recommended for diversity
-            selected_resources = []
-            
-            # Take some least recommended (new/underused resources)
-            selected_resources.extend(existing_resources[:limit // 2])
-            
-            # Take some most recommended (proven valuable resources)
-            selected_resources.extend(Resource.objects.filter(query).order_by('-times_recommended')[:limit - len(selected_resources)])
-            
-            # Increment recommendation counts
-            for resource in selected_resources:
-                resource.increment_recommendation_count()
-            
-            # Convert to dict format
-            return [
-                {
-                    "title": r.title,
-                    "type": r.resource_type,
-                    "url": r.url,
-                    "description": r.description,
-                    "platform": r.platform,
-                    "difficulty": r.difficulty,
-                    "estimated_time": r.estimated_time,
-                    "is_free": r.is_free
-                }
-                for r in selected_resources
-            ]
-        
-        # Step 3: Not enough in database, generate NEW resources via AI
-        needed_count = limit - len(existing_resources)
-        
-        # Get ALL URLs already in database to avoid duplicates (not just for this topic)
-        existing_urls = set(Resource.objects.all().values_list('url', flat=True))
-        
-        # Generate new resources via AI
         try:
-            new_resources_data = LearningAIService.suggest_resources(topic, learning_style, resource_type)
+            # Ensure fresh database connection
+            connection.ensure_connection()
             
-            # Step 4: Save new resources to database (excluding duplicates)
-            new_resources = []
-            for resource_data in new_resources_data[:needed_count * 2]:  # Get extra in case of duplicates
-                resource_url = resource_data.get('url', '')
+            # Step 1: Query database for existing resources
+            query = Q(topic__icontains=topic)
+            
+            if resource_type != "all":
+                query &= Q(resource_type=resource_type)
+            
+            # Get existing resources, ordered by LEAST recommended first (to diversify)
+            existing_resources = list(Resource.objects.filter(query).order_by('times_recommended')[:limit * 2])
+            
+            # Step 2: If we have enough diverse resources, use them
+            if len(existing_resources) >= limit:
+                # Mix of least and most recommended for diversity
+                selected_resources = []
                 
-                # Skip if URL already exists in database
-                if resource_url and resource_url not in existing_urls:
-                    try:
-                        # Create new resource in database
-                        resource = Resource.objects.create(
-                            topic=topic,
-                            title=resource_data.get('title', 'Untitled'),
-                            url=resource_url,
-                            description=resource_data.get('description', ''),
-                            resource_type=resource_data.get('type', 'article'),
-                            difficulty=resource_data.get('difficulty', 'all'),
-                            platform=resource_data.get('platform', 'Web'),
-                            learning_style=learning_style,
-                            estimated_time=resource_data.get('estimated_time', 'Varies'),
-                            is_free=resource_data.get('is_free', True),
-                            times_recommended=1  # First recommendation
-                        )
-                        new_resources.append(resource)
-                        existing_urls.add(resource_url)
-                        
-                        if len(new_resources) >= needed_count:
-                            break
-                    except Exception as e:
-                        # Silently skip duplicates, only print other errors
-                        if 'duplicate key' not in str(e).lower():
-                            print(f"Error saving resource: {e}")
-                        continue
+                # Take some least recommended (new/underused resources)
+                selected_resources.extend(existing_resources[:limit // 2])
+                
+                # Take some most recommended (proven valuable resources)
+                selected_resources.extend(Resource.objects.filter(query).order_by('-times_recommended')[:limit - len(selected_resources)])
+                
+                # Increment recommendation counts
+                for resource in selected_resources:
+                    resource.increment_recommendation_count()
+                
+                # Convert to dict format
+                return [
+                    {
+                        "title": r.title,
+                        "type": r.resource_type,
+                        "url": r.url,
+                        "description": r.description,
+                        "platform": r.platform,
+                        "difficulty": r.difficulty,
+                        "estimated_time": r.estimated_time,
+                        "is_free": r.is_free
+                    }
+                    for r in selected_resources
+                ]
             
-            # Combine existing and new resources
-            all_resources = existing_resources + new_resources
+            # Step 3: Not enough in database, generate NEW resources via AI
+            needed_count = limit - len(existing_resources)
             
-            # Increment counts for existing resources
-            for resource in existing_resources:
-                resource.increment_recommendation_count()
+            # Get ALL URLs already in database to avoid duplicates (not just for this topic)
+            existing_urls = set(Resource.objects.all().values_list('url', flat=True))
             
-            # Return combined list
-            return [
-                {
-                    "title": r.title,
-                    "type": r.resource_type,
-                    "url": r.url,
-                    "description": r.description,
-                    "platform": r.platform,
-                    "difficulty": r.difficulty,
-                    "estimated_time": r.estimated_time if hasattr(r, 'estimated_time') else 'Varies',
-                    "is_free": r.is_free if hasattr(r, 'is_free') else True
-                }
-                for r in all_resources[:limit]
-            ]
-            
+            # Generate new resources via AI with full context
+            try:
+                new_resources_data = LearningAIService.suggest_resources(
+                    topic, 
+                    learning_style, 
+                    resource_type,
+                    context=context  # Pass the rich context
+                )
+                
+                # Step 4: Save new resources to database (excluding duplicates)
+                new_resources = []
+                for resource_data in new_resources_data[:needed_count * 2]:  # Get extra in case of duplicates
+                    resource_url = resource_data.get('url', '')
+                    
+                    # Skip if URL already exists in database
+                    if resource_url and resource_url not in existing_urls:
+                        try:
+                            # Detect category from topic
+                            category = Resource.detect_category_from_topic(topic)
+                            
+                            # Create new resource in database
+                            resource = Resource.objects.create(
+                                topic=topic,
+                                title=resource_data.get('title', 'Untitled'),
+                                url=resource_url,
+                                description=resource_data.get('description', ''),
+                                resource_type=resource_data.get('type', 'article'),
+                                category=category,
+                                difficulty=resource_data.get('difficulty', 'all'),
+                                platform=resource_data.get('platform', 'Web'),
+                                learning_style=learning_style,
+                                estimated_time=resource_data.get('estimated_time', 'Varies'),
+                                is_free=resource_data.get('is_free', True),
+                                times_recommended=1  # First recommendation
+                            )
+                            new_resources.append(resource)
+                            existing_urls.add(resource_url)
+                            
+                            if len(new_resources) >= needed_count:
+                                break
+                        except Exception as e:
+                            # Silently skip duplicates, only print other errors
+                            if 'duplicate key' not in str(e).lower():
+                                print(f"Error saving resource: {e}")
+                            continue
+                
+                # Combine existing and new resources
+                all_resources = existing_resources + new_resources
+                
+                # Increment counts for existing resources
+                for resource in existing_resources:
+                    resource.increment_recommendation_count()
+                
+                # Return combined list
+                return [
+                    {
+                        "title": r.title,
+                        "type": r.resource_type,
+                        "url": r.url,
+                        "description": r.description,
+                        "platform": r.platform,
+                        "difficulty": r.difficulty,
+                        "estimated_time": r.estimated_time if hasattr(r, 'estimated_time') else 'Varies',
+                        "is_free": r.is_free if hasattr(r, 'is_free') else True
+                    }
+                    for r in all_resources[:limit]
+                ]
+                
+            except Exception as e:
+                # Fallback to existing resources if we have any, otherwise use curated
+                if existing_resources:
+                    for resource in existing_resources:
+                        resource.increment_recommendation_count()
+                    
+                    return [
+                        {
+                            "title": r.title,
+                            "type": r.resource_type,
+                            "url": r.url,
+                            "description": r.description,
+                            "platform": r.platform,
+                            "difficulty": r.difficulty,
+                            "estimated_time": r.estimated_time,
+                            "is_free": r.is_free
+                        }
+                        for r in existing_resources
+                    ]
+                else:
+                    # No existing resources, use curated fallback
+                    return LearningAIService._get_curated_fallback_resources(topic, learning_style)
+        
         except Exception as e:
-            print(f"Error generating AI resources: {e}")
-            # Fallback to existing resources only
-            for resource in existing_resources:
-                resource.increment_recommendation_count()
-            
-            return [
-                {
-                    "title": r.title,
-                    "type": r.resource_type,
-                    "url": r.url,
-                    "description": r.description,
-                    "platform": r.platform,
-                    "difficulty": r.difficulty,
-                    "estimated_time": r.estimated_time,
-                    "is_free": r.is_free
-                }
-                for r in existing_resources
-            ]
-
+            # Database connection error - use fallback curated resources
+            return LearningAIService._get_curated_fallback_resources(topic, learning_style)

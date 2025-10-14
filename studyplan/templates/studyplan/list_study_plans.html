@@ -71,7 +71,7 @@
                 <small>Created: {{ plan.date_created|date:"M d, Y" }}</small>
               </div>
               <div class="plan-actions">
-                <a href="{% url 'study_plan_resources' plan.id %}" class="btn-resources">📚 Resources</a>
+                <a href="{% url 'study_plan_resources' plan.id %}" class="btn-resources" onclick="showLoading(event)">📚 Resources</a>
                 <a href="{% url 'edit_study_plan' plan.id %}" class="btn-edit">✏️ Edit</a>
                 <a href="{% url 'delete_study_plan' plan.id %}" class="btn-delete">🗑️ Delete</a>
               </div>
@@ -88,5 +88,28 @@
       </div>
     {% endif %}
   </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(102, 126, 234, 0.95); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="text-align: center; color: white;">
+      <div style="width: 60px; height: 60px; margin: 0 auto 20px; border: 5px solid rgba(255,255,255,0.3); border-top: 5px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px;">🤖 Loading Resources...</div>
+      <div style="font-size: 14px; opacity: 0.9;">AI is curating personalized content for you</div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script>
+    function showLoading(event) {
+      // Show loading overlay
+      document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+  </script>
 </body>
 </html>

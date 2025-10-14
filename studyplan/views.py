@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db import connection
 from .models import StudyPlan
 from .forms import StudyPlanForm
 from authentication.models import User
@@ -122,22 +123,52 @@ def delete_study_plan(request, plan_id):
 @require_login
 def get_resources(request, plan_id):
     """Get AI-powered learning resources with real links for a study plan using smart database system"""
+    from django.db import connection
+    
     user_id = request.session.get("app_user_id")
-    user = User.objects.get(id=user_id)
-    study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
     
-    # Use SMART resource system (checks database first, then generates new ones)
-    resources = LearningAIService.get_smart_resources(
-        topic=study_plan.title,
-        learning_style=user.learningstyle,
-        resource_type="all",
-        limit=8  # Show more resources on dedicated page
-    )
-    
-    return render(request, 'studyplan/resources.html', {
-        'study_plan': study_plan,
-        'resources': resources,
-        'user': user,
-        'name': request.session.get("app_user_name", "User")
-    })
+    try:
+        # Close old connections to prevent stale connection issues
+        connection.close()
+        
+        user = User.objects.get(id=user_id)
+        study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+        
+        # Build rich context from study plan details
+        duration_days = (study_plan.end_date - study_plan.start_date).days
+        duration_weeks = duration_days // 7
+        
+        context = {
+            'learning_style': user.learningstyle,  # User's learning style
+            'description': study_plan.description or 'No description provided',
+            'learning_objective': study_plan.learning_objective,
+            'preferred_resources': study_plan.preferred_resources or 'Any type',
+            'duration': f"{duration_weeks} weeks ({duration_days} days)",
+            'hours_per_week': f"{study_plan.estimated_hours_per_week} hours",
+            'start_date': study_plan.start_date.strftime('%B %d, %Y'),
+            'end_date': study_plan.end_date.strftime('%B %d, %Y'),
+            'status': study_plan.status
+        }
+        
+        # Use SMART resource system with FULL CONTEXT
+        resources = LearningAIService.get_smart_resources(
+            topic=study_plan.title,
+            learning_style=user.learningstyle,
+            resource_type="all",
+            limit=8,  # Show more resources on dedicated page
+            context=context  # Pass rich context for better AI recommendations
+        )
+        
+        return render(request, 'studyplan/resources.html', {
+            'study_plan': study_plan,
+            'resources': resources,
+            'user': user,
+            'name': request.session.get("app_user_name", "User")
+        })
+    except Exception as e:
+        # If database connection fails, try to reconnect
+        connection.close()
+        messages.error(request, "Database connection error. Please try again.")
+        print(f"Database error in get_resources: {e}")
+        return redirect('list_study_plans')
 

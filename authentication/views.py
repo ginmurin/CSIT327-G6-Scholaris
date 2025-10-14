@@ -1,13 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
+from django.contrib.auth.hashers import make_password
 from .forms import RegisterForm, LoginForm, ProfileForm, ForgotPasswordForm, ResetPasswordForm, ChangeEmailForm, ChangePasswordForm
 from .models import User as AppUser
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.utils import timezone
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-import os
+from core.supabase_storage import SupabaseStorage
 import secrets
 
 def landing_view(request):
@@ -26,13 +25,8 @@ class RegisterView(View):
         if form.is_valid():
             user = form.save()
             
-            # US 1.3.4: Automatically log in the user after successful registration
-            request.session["app_user_id"] = user.id
-            request.session["app_user_name"] = user.name
-            request.session["app_user_timezone"] = user.timezone
-            request.session["app_user_language"] = user.language
-            
-            return redirect("home")
+            messages.success(request, "Account created successfully! Please login to continue.")
+            return redirect("login")
         
         return render(request, self.template_name, {"form": form})
 
@@ -84,15 +78,23 @@ def profile_view(request):
     if request.method == "POST":
         form = ProfileForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
-            # Handle profile picture upload
+            # Handle profile picture upload to Supabase
             profile_picture_file = request.FILES.get('profile_picture')
             if profile_picture_file:
-                upload_dir = 'profile_pictures'
-                ext = profile_picture_file.name.split('.')[-1]
-                filename = f"user_{user.id}_{timezone.now().strftime('%Y%m%d%H%M%S')}.{ext}"
-                filepath = os.path.join(upload_dir, filename)
-                path = default_storage.save(filepath, ContentFile(profile_picture_file.read()))
-                user.profile_picture = path
+                try:
+                    storage = SupabaseStorage()
+                    
+                    # Delete old profile picture if exists
+                    if user.profile_picture:
+                        storage.delete_profile_picture(user.profile_picture)
+                    
+                    # Upload new picture and get public URL
+                    public_url = storage.upload_profile_picture(profile_picture_file, user.id)
+                    user.profile_picture = public_url
+                    
+                except Exception as e:
+                    messages.error(request, f"Failed to upload image: {str(e)}")
+                    return redirect("profile")
             
             # Save all form fields
             user.name = form.cleaned_data['name']
@@ -194,9 +196,9 @@ class ResetPasswordView(View):
             
             form = ResetPasswordForm(request.POST)
             if form.is_valid():
-                # Save new password (plain text)
+                # Save new password with hashing
                 new_password = form.cleaned_data['password1']
-                user.password = new_password
+                user.password = make_password(new_password)
                 user.reset_token = None
                 user.reset_token_created_at = None
                 user.save(update_fields=['password', 'reset_token', 'reset_token_created_at'])
@@ -248,7 +250,7 @@ def change_password_view(request):
         form = ChangePasswordForm(request.POST, user=user)
         if form.is_valid():
             new_password = form.cleaned_data['new_password1']
-            user.password = new_password
+            user.password = make_password(new_password)
             user.save(update_fields=['password'])
             
             messages.success(request, "Password changed successfully!")

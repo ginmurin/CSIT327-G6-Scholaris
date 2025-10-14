@@ -62,8 +62,9 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     "default": dj_database_url.parse(
         os.getenv("DATABASE_URL"),  
-        conn_max_age=600,            
-        ssl_require=True
+        conn_max_age=0,  # Don't persist connections (prevents timeout issues)
+        ssl_require=True,
+        conn_health_checks=True  # Enable connection health checks
     )
 }
 
@@ -89,11 +90,14 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# File Upload Settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
+# Supabase Configuration
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET', 'profile-pictures')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
