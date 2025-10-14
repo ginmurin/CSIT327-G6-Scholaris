@@ -11,7 +11,7 @@ psycopg2==2.9.10
 # Supabase Storage
 supabase==2.11.0
 storage3==0.8.1
-postgrest==0.18.1
+postgrest==0.19.0
 realtime==2.0.5
 gotrue==2.10.1
 
@@ -28,6 +28,9 @@ grpcio-status==1.71.2
 
 # Environment Variables
 python-dotenv==1.1.1
+
+# Production Server
+gunicorn==23.0.0
 
 # Image Processing
 pillow==11.3.0
