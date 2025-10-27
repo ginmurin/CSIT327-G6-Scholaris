@@ -18,12 +18,34 @@ def require_login(view_func):
 
 @require_login
 def list_study_plans(request):
-    """Display all study plans for the logged-in user"""
+    """Display all study plans for the logged-in user with progress tracking"""
+    from progress.models import Progress, ResourceProgress
+    from studyplan.models import StudyPlanResource
+    
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
-    study_plans = StudyPlan.objects.filter(user=user)
+    study_plans = StudyPlan.objects.filter(user=user).prefetch_related('plan_resources')
+    
+    # Add progress data to each study plan
+    plans_with_progress = []
+    for plan in study_plans:
+        # Get or create progress record
+        progress, created = Progress.objects.get_or_create(
+            user=user,
+            study_plan=plan,
+            defaults={'total_resources': 0, 'completed_resources': 0}
+        )
+        
+        # Update progress if needed
+        if created or progress.total_resources == 0:
+            progress.update_progress()
+        
+        # Add progress data to plan object
+        plan.progress = progress
+        plans_with_progress.append(plan)
+    
     return render(request, 'studyplan/list_study_plans.html', {
-        'study_plans': study_plans,
+        'study_plans': plans_with_progress,
         'name': request.session.get("app_user_name", "User")
     })
 
@@ -133,6 +155,7 @@ def get_resources(request, plan_id):
     from django.db import connection
     from resources.models import Resource
     from studyplan.models import StudyPlanResource
+    from progress.models import Progress, ResourceProgress
     
     user_id = request.session.get("app_user_id")
     
@@ -143,13 +166,29 @@ def get_resources(request, plan_id):
         user = User.objects.get(id=user_id)
         study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
         
+        # Get or create progress record
+        progress, created = Progress.objects.get_or_create(
+            user=user,
+            study_plan=study_plan,
+            defaults={'total_resources': 0, 'completed_resources': 0}
+        )
+        
         # Check if resources are already saved for this study plan
         existing_plan_resources = StudyPlanResource.objects.filter(study_plan=study_plan).select_related('resource')
         
         if existing_plan_resources.exists():
-            # Use saved resources
-            resources = [
-                {
+            # Use saved resources with progress tracking
+            resources = []
+            for spr in existing_plan_resources:
+                # Get or create resource progress
+                resource_progress, _ = ResourceProgress.objects.get_or_create(
+                    user=user,
+                    study_plan_resource=spr,
+                    defaults={'is_completed': spr.is_completed}
+                )
+                
+                resources.append({
+                    "id": spr.id,
                     "title": spr.resource.title,
                     "type": spr.resource.resource_type,
                     "url": spr.resource.url,
@@ -157,10 +196,10 @@ def get_resources(request, plan_id):
                     "platform": spr.resource.platform,
                     "difficulty": spr.resource.difficulty,
                     "estimated_time": spr.resource.estimated_time,
-                    "is_free": spr.resource.is_free
-                }
-                for spr in existing_plan_resources
-            ]
+                    "is_free": spr.resource.is_free,
+                    "is_completed": spr.is_completed,
+                    "progress_id": resource_progress.id
+                })
         else:
             # Generate new resources via AI
             # Build rich context from study plan details
@@ -209,18 +248,28 @@ def get_resources(request, plan_id):
                     )
                     
                     # Link resource to study plan
-                    StudyPlanResource.objects.get_or_create(
+                    spr, _ = StudyPlanResource.objects.get_or_create(
                         study_plan=study_plan,
                         resource=resource,
                         defaults={'order_index': index}
                     )
+                    
+                    # Create resource progress
+                    ResourceProgress.objects.get_or_create(
+                        user=user,
+                        study_plan_resource=spr
+                    )
                 except Exception as e:
                     print(f"Error saving resource: {e}")
                     continue
+            
+            # Update progress count
+            progress.update_progress()
         
         return render(request, 'studyplan/resources.html', {
             'study_plan': study_plan,
             'resources': resources,
+            'progress': progress,
             'user': user,
             'name': request.session.get("app_user_name", "User")
         })
@@ -230,4 +279,84 @@ def get_resources(request, plan_id):
         messages.error(request, "Database connection error. Please try again.")
         print(f"Database error in get_resources: {e}")
         return redirect('list_study_plans')
+
+@require_login
+def toggle_resource_completion(request, plan_id, resource_id):
+    """Toggle completion status of a resource"""
+    from progress.models import Progress, ResourceProgress
+    from studyplan.models import StudyPlanResource
+    from django.http import JsonResponse
+    
+    user_id = request.session.get("app_user_id")
+    user = User.objects.get(id=user_id)
+    
+    try:
+        study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+        study_plan_resource = get_object_or_404(StudyPlanResource, id=resource_id, study_plan=study_plan)
+        
+        # Get or create resource progress
+        resource_progress, _ = ResourceProgress.objects.get_or_create(
+            user=user,
+            study_plan_resource=study_plan_resource
+        )
+        
+        # Toggle completion
+        if resource_progress.is_completed:
+            resource_progress.mark_incomplete()
+            status = 'incomplete'
+        else:
+            resource_progress.mark_completed()
+            status = 'completed'
+        
+        # Get updated progress
+        progress = Progress.objects.get(user=user, study_plan=study_plan)
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'status': status,
+                'is_completed': resource_progress.is_completed,
+                'completion_percentage': float(progress.completion_percentage),
+                'completed_resources': progress.completed_resources,
+                'total_resources': progress.total_resources
+            })
+        else:
+            messages.success(request, f'Resource marked as {status}!')
+            return redirect('study_plan_resources', plan_id=plan_id)
+            
+    except Exception as e:
+        print(f"Error toggling completion: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        else:
+            messages.error(request, "Error updating resource status.")
+            return redirect('study_plan_resources', plan_id=plan_id)
+
+@require_login
+def study_plan_progress(request, plan_id):
+    """Show progress page for a specific study plan"""
+    from progress.models import Progress, ResourceProgress
+    from studyplan.models import StudyPlanResource
+    
+    user_id = request.session.get("app_user_id")
+    user = User.objects.get(id=user_id)
+    study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+    
+    # Get or create progress record
+    progress, created = Progress.objects.get_or_create(
+        user=user,
+        study_plan=study_plan,
+        defaults={'total_resources': 0, 'completed_resources': 0}
+    )
+    
+    # Update progress if needed
+    if created or progress.total_resources == 0:
+        progress.update_progress()
+    
+    return render(request, 'studyplan/progress_detail.html', {
+        'study_plan': study_plan,
+        'progress': progress,
+        'user': user,
+        'name': request.session.get("app_user_name", "User")
+    })
 

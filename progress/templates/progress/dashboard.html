@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Progress - Scholaris</title>
+    <link rel="stylesheet" href="{% static 'progress/css/progress.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-chart-line"></i> My Learning Progress</h1>
+            <nav class="nav-links">
+                <a href="{% url 'authentication:home' %}"><i class="fas fa-home"></i> Home</a>
+                <a href="{% url 'studyplan:dashboard' %}"><i class="fas fa-calendar-alt"></i> Study Plans</a>
+                <a href="{% url 'progress:achievements' %}"><i class="fas fa-trophy"></i> Achievements</a>
+            </nav>
+        </header>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_plans }}</h3>
+                    <p>Total Study Plans</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ completed_plans }}</h3>
+                    <p>Plans Completed</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ active_plans }}</h3>
+                    <p>Active Plans</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_hours }}</h3>
+                    <p>Hours Studied</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon teal">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_resources_completed }}</h3>
+                    <p>Resources Completed</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Study Plans Progress -->
+        <section class="plans-section">
+            <h2><i class="fas fa-tasks"></i> Study Plans Progress</h2>
+            
+            {% if study_plans %}
+                <div class="plans-grid">
+                    {% for plan in study_plans %}
+                        <div class="plan-card">
+                            <div class="plan-header">
+                                <h3>{{ plan.title }}</h3>
+                                <span class="status-badge status-{{ plan.status }}">{{ plan.get_status_display }}</span>
+                            </div>
+                            
+                            <p class="plan-description">{{ plan.description|truncatewords:20 }}</p>
+                            
+                            {% if plan.progress %}
+                                <div class="progress-section">
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: {{ plan.progress.completion_percentage }}%;">
+                                            <span class="progress-text">{{ plan.progress.completion_percentage|floatformat:0 }}%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="progress-stats">
+                                        <div class="stat-item">
+                                            <i class="fas fa-tasks"></i>
+                                            <span>{{ plan.progress.completed_resources }}/{{ plan.progress.total_resources }} Resources</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <i class="fas fa-clock"></i>
+                                            <span>{{ plan.progress.total_hours_spent|floatformat:1 }}h</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if plan.progress.last_activity %}
+                                        <p class="last-activity">
+                                            Last activity: {{ plan.progress.last_activity|timesince }} ago
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="plan-actions">
+                                <a href="{% url 'progress:study_plan_detail' plan.id %}" class="btn btn-primary">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>No Study Plans Yet</h3>
+                    <p>Create your first study plan to start tracking your progress!</p>
+                    <a href="{% url 'studyplan:dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Study Plan
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Recent Study Sessions -->
+        {% if recent_sessions %}
+            <section class="sessions-section">
+                <h2><i class="fas fa-history"></i> Recent Study Sessions</h2>
+                <div class="sessions-list">
+                    {% for session in recent_sessions %}
+                        <div class="session-item">
+                            <div class="session-icon">
+                                <i class="fas fa-book-reader"></i>
+                            </div>
+                            <div class="session-info">
+                                <h4>{{ session.study_plan.title }}</h4>
+                                {% if session.resource %}
+                                    <p>{{ session.resource.title }}</p>
+                                {% endif %}
+                                <span class="session-date">{{ session.started_at|date:"M d, Y - g:i A" }}</span>
+                            </div>
+                            <div class="session-duration">
+                                <strong>{{ session.duration|floatformat:1 }}</strong> hours
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Recent Achievements -->
+        {% if recent_achievements %}
+            <section class="achievements-section">
+                <h2><i class="fas fa-trophy"></i> Recent Achievements</h2>
+                <div class="achievements-grid">
+                    {% for achievement in recent_achievements %}
+                        <div class="achievement-card">
+                            <div class="achievement-icon">
+                                <i class="fas fa-award"></i>
+                            </div>
+                            <h4>{{ achievement.title }}</h4>
+                            <p>{{ achievement.description }}</p>
+                            <span class="earned-date">{{ achievement.earned_at|date:"M d, Y" }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="view-all">
+                    <a href="{% url 'progress:achievements' %}" class="btn btn-secondary">
+                        View All Achievements
+                    </a>
+                </div>
+            </section>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'progress/js/progress.js' %}"></script>
+</body>
+</html>

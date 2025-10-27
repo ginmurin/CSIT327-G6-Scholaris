@@ -70,6 +70,7 @@ urlpatterns = [
     path("", include("authentication.urls")),
     path("home/", home, name="home"),
     path("study-plans/", include("studyplan.urls")),
+    path("progress/", include("progress.urls")),
 ]
 
 # Serve media files in development

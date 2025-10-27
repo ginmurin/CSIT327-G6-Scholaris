@@ -134,7 +134,7 @@
 
       <div class="resources-grid">
         {% for resource in resources %}
-        <div class="resource-card">
+        <div class="resource-card {% if resource.is_completed %}completed{% endif %}" id="resource-{{ resource.id }}">
           <div class="resource-card-header">
             <span class="resource-type-badge badge-{{ resource.type }}">
               {% if resource.type == "video" %}📺 Video
@@ -149,6 +149,9 @@
               <span class="difficulty-badge badge-{{ resource.difficulty }}">
                 {{ resource.difficulty|title }}
               </span>
+            {% endif %}
+            {% if resource.is_completed %}
+              <span class="completion-badge">✓ Completed</span>
             {% endif %}
           </div>
 
@@ -177,6 +180,17 @@
               <span class="meta-icon">⏱️</span>
               <span>{{ resource.estimated_time }}</span>
             </div>
+          {% endif %}
+
+          <!-- Completion Checkbox -->
+          {% if resource.id %}
+          <div class="resource-completion" onclick="toggleCompletion({{ study_plan.id }}, {{ resource.id }}, this)">
+            <input type="checkbox" 
+                   id="checkbox-{{ resource.id }}" 
+                   {% if resource.is_completed %}checked{% endif %}
+                   onclick="event.stopPropagation(); toggleCompletion({{ study_plan.id }}, {{ resource.id }}, this.parentElement)">
+            <label for="checkbox-{{ resource.id }}">Mark as completed</label>
+          </div>
           {% endif %}
         </div>
         {% empty %}
@@ -213,6 +227,82 @@
       document.getElementById('loadingScreen').classList.add('hidden');
       document.getElementById('mainContent').classList.add('visible');
     }, 3000);
+
+    // Toggle resource completion
+    function toggleCompletion(planId, resourceId, element) {
+      const checkbox = element.querySelector('input[type="checkbox"]');
+      const card = document.getElementById('resource-' + resourceId);
+      
+      // Toggle checkbox
+      checkbox.checked = !checkbox.checked;
+      
+      // Send AJAX request
+      fetch(`/studyplan/${planId}/resources/${resourceId}/toggle/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update UI
+          if (data.is_completed) {
+            card.classList.add('completed');
+            // Add completion badge if not exists
+            const header = card.querySelector('.resource-card-header');
+            if (!header.querySelector('.completion-badge')) {
+              const badge = document.createElement('span');
+              badge.className = 'completion-badge';
+              badge.textContent = '✓ Completed';
+              header.appendChild(badge);
+            }
+          } else {
+            card.classList.remove('completed');
+            // Remove completion badge
+            const badge = card.querySelector('.completion-badge');
+            if (badge) badge.remove();
+          }
+          
+          // Update progress bar
+          updateProgressBar(data.completion_percentage, data.completed_resources, data.total_resources);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        // Revert checkbox on error
+        checkbox.checked = !checkbox.checked;
+      });
+    }
+
+    // Update progress bar
+    function updateProgressBar(percentage, completed, total) {
+      const progressBar = document.querySelector('.progress-bar');
+      const progressPercentage = document.querySelector('.progress-percentage');
+      const progressStats = document.querySelector('.progress-stats span:first-child');
+      
+      if (progressBar) progressBar.style.width = percentage + '%';
+      if (progressPercentage) progressPercentage.textContent = Math.round(percentage) + '%';
+      if (progressStats) progressStats.textContent = `✅ ${completed}/${total} resources completed`;
+    }
+
+    // Get CSRF token
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
   </script>
 </body>
 </html>

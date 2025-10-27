@@ -1,0 +1,389 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Progress - {{ study_plan.title }}</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <link rel="stylesheet" href="{% static 'studyplan/css/studyplan.css' %}">
+  <style>
+    .progress-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .progress-hero {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 40px;
+      text-align: center;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .progress-title {
+      font-size: 32px;
+      color: #fff;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .progress-subtitle {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 30px;
+    }
+
+    .progress-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .large-progress-bar-container {
+      width: 100%;
+      height: 30px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 15px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .large-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+      border-radius: 15px;
+      transition: width 0.8s ease;
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .large-progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .large-progress-percentage {
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px 30px;
+      border-radius: 15px;
+      font-size: 18px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .btn-resources {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-resources:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-quiz {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+    }
+
+    .btn-quiz:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+    }
+
+    .btn-quiz.disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.4);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-quiz.disabled:hover {
+      transform: none;
+    }
+
+    .btn-icon {
+      font-size: 24px;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .back-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateX(-5px);
+    }
+
+    .milestone-section {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 15px;
+      padding: 30px;
+      margin-top: 30px;
+      border: 1px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .milestone-title {
+      font-size: 24px;
+      color: #fff;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .milestone-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .milestone-badge {
+      background: rgba(102, 126, 234, 0.1);
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .milestone-badge.achieved {
+      background: rgba(102, 126, 234, 0.3);
+      border-color: #4ade80;
+      box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+    }
+
+    .milestone-badge:hover {
+      transform: scale(1.05);
+    }
+
+    .milestone-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .milestone-name {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 600;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .info-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      background: rgba(240, 147, 251, 0.2);
+      border: 1px solid rgba(240, 147, 251, 0.4);
+      border-radius: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="{% url 'list_study_plans' %}" class="back-button">
+      <span>←</span>
+      <span>Back to Study Plans</span>
+    </a>
+
+    <div class="progress-container">
+      <div class="progress-hero">
+        <h1 class="progress-title">{{ study_plan.title }}</h1>
+        <p class="progress-subtitle">{{ study_plan.learning_objective }}</p>
+
+        <div class="progress-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value">{{ study_plan.end_date|date:"M d" }}</div>
+            <div class="stat-label">Deadline</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value">--</div>
+            <div class="stat-label">Average Grade</div>
+            <div style="font-size: 11px; color: rgba(240, 147, 251, 0.8); margin-top: 5px; font-weight: 600;">🚧 Coming Soon</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">📝</div>
+            <div class="stat-value">0</div>
+            <div class="stat-label">Quizzes Taken</div>
+            <div style="font-size: 11px; color: rgba(240, 147, 251, 0.8); margin-top: 5px; font-weight: 600;">🚧 Coming Soon</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">�</div>
+            <div class="stat-value">0</div>
+            <div class="stat-label">Quiz History</div>
+            <div style="font-size: 11px; color: rgba(240, 147, 251, 0.8); margin-top: 5px; font-weight: 600;">🚧 Coming Soon</div>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <a href="{% url 'study_plan_resources' study_plan.id %}" class="action-btn btn-resources">
+            <span class="btn-icon">📚</span>
+            <span>View Resources</span>
+          </a>
+          <a href="#" class="action-btn btn-quiz disabled" onclick="return false;">
+            <span class="btn-icon">📝</span>
+            <span>Take Quiz</span>
+          </a>
+        </div>
+
+        <div class="info-badge">
+          🚧 Quiz feature coming soon!
+        </div>
+      </div>
+
+      <!-- Milestones Section -->
+      <div class="milestone-section">
+        <h2 class="milestone-title">🏆 Milestones</h2>
+        <div class="milestone-grid">
+          <div class="milestone-badge {% if progress.started_at %}achieved{% endif %}">
+            <div class="milestone-icon">🚀</div>
+            <div class="milestone-name">Started Journey</div>
+          </div>
+          
+          <div class="milestone-badge {% if progress.completion_percentage >= 25 %}achieved{% endif %}">
+            <div class="milestone-icon">📖</div>
+            <div class="milestone-name">25% Complete</div>
+          </div>
+          
+          <div class="milestone-badge {% if progress.completion_percentage >= 50 %}achieved{% endif %}">
+            <div class="milestone-icon">⭐</div>
+            <div class="milestone-name">Halfway There</div>
+          </div>
+          
+          <div class="milestone-badge {% if progress.completion_percentage >= 75 %}achieved{% endif %}">
+            <div class="milestone-icon">💪</div>
+            <div class="milestone-name">75% Complete</div>
+          </div>
+          
+          <div class="milestone-badge {% if progress.completion_percentage == 100 %}achieved{% endif %}">
+            <div class="milestone-icon">🎉</div>
+            <div class="milestone-name">Completed!</div>
+          </div>
+          
+          <div class="milestone-badge {% if progress.total_hours_spent >= 10 %}achieved{% endif %}">
+            <div class="milestone-icon">⏰</div>
+            <div class="milestone-name">10 Hours</div>
+          </div>
+        </div>
+      </div>
+
+      {% if progress.started_at %}
+      <div class="milestone-section">
+        <h2 class="milestone-title">📅 Timeline</h2>
+        <div class="stat-card">
+          <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 10px;">
+            <strong>Started:</strong> {{ progress.started_at|date:"F d, Y" }}
+          </p>
+          <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 10px;">
+            <strong>Last Activity:</strong> {{ progress.last_activity|date:"F d, Y" }}
+          </p>
+          {% if progress.completed_at %}
+          <p style="color: #4ade80; font-weight: 600;">
+            <strong>✅ Completed:</strong> {{ progress.completed_at|date:"F d, Y" }}
+          </p>
+          {% else %}
+          <p style="color: rgba(255, 255, 255, 0.8);">
+            <strong>Target End Date:</strong> {{ study_plan.end_date|date:"F d, Y" }}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

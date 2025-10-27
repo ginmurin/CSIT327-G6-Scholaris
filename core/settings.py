@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'authentication',
     'studyplan',
     'resources',
+    'progress',
 ]
 
 LOGIN_URL = 'login'

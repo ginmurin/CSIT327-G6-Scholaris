@@ -1,0 +1,176 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Achievements - Scholaris</title>
+    <link rel="stylesheet" href="{% static 'progress/css/progress.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-trophy"></i> My Achievements</h1>
+            <nav class="nav-links">
+                <a href="{% url 'progress:dashboard' %}"><i class="fas fa-arrow-left"></i> Back to Progress</a>
+                <a href="{% url 'authentication:home' %}"><i class="fas fa-home"></i> Home</a>
+            </nav>
+        </header>
+
+        <!-- Achievement Stats -->
+        <div class="achievement-stats">
+            <div class="stat-card">
+                <div class="stat-icon gold">
+                    <i class="fas fa-medal"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ achievements.count }}</h3>
+                    <p>Total Achievements</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_hours|floatformat:0 }}</h3>
+                    <p>Hours Studied</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon teal">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_resources }}</h3>
+                    <p>Resources Completed</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ completed_plans }}</h3>
+                    <p>Plans Completed</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Achievements Display -->
+        <section class="achievements-display">
+            {% if achievements %}
+                <h2>Your Earned Achievements</h2>
+                <div class="achievements-grid-large">
+                    {% for achievement in achievements %}
+                        <div class="achievement-card-large">
+                            <div class="achievement-badge">
+                                {% if 'first' in achievement.achievement_type %}
+                                    <i class="fas fa-star"></i>
+                                {% elif 'streak' in achievement.achievement_type %}
+                                    <i class="fas fa-fire"></i>
+                                {% elif 'hours' in achievement.achievement_type %}
+                                    <i class="fas fa-clock"></i>
+                                {% elif 'resources' in achievement.achievement_type %}
+                                    <i class="fas fa-book"></i>
+                                {% elif 'plan_completed' in achievement.achievement_type %}
+                                    <i class="fas fa-trophy"></i>
+                                {% else %}
+                                    <i class="fas fa-award"></i>
+                                {% endif %}
+                            </div>
+                            <h3>{{ achievement.title }}</h3>
+                            <p>{{ achievement.description }}</p>
+                            <div class="earned-info">
+                                <i class="fas fa-calendar-check"></i>
+                                Earned {{ achievement.earned_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-trophy"></i>
+                    <h3>No Achievements Yet</h3>
+                    <p>Start learning to unlock achievements!</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Locked Achievements -->
+        <section class="locked-achievements">
+            <h2>Unlock More Achievements</h2>
+            <div class="locked-grid">
+                {% if total_hours < 10 %}
+                    <div class="achievement-card-large locked">
+                        <div class="achievement-badge">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Dedicated Learner</h3>
+                        <p>Study for 10 hours</p>
+                        <div class="progress-info">
+                            <small>{{ total_hours|floatformat:1 }} / 10 hours</small>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if total_hours < 50 %}
+                    <div class="achievement-card-large locked">
+                        <div class="achievement-badge">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Study Warrior</h3>
+                        <p>Study for 50 hours</p>
+                        <div class="progress-info">
+                            <small>{{ total_hours|floatformat:1 }} / 50 hours</small>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if total_hours < 100 %}
+                    <div class="achievement-card-large locked">
+                        <div class="achievement-badge">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Master Student</h3>
+                        <p>Study for 100 hours</p>
+                        <div class="progress-info">
+                            <small>{{ total_hours|floatformat:1 }} / 100 hours</small>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if total_resources < 10 %}
+                    <div class="achievement-card-large locked">
+                        <div class="achievement-badge">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Learning Enthusiast</h3>
+                        <p>Complete 10 resources</p>
+                        <div class="progress-info">
+                            <small>{{ total_resources }} / 10 resources</small>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if total_resources < 50 %}
+                    <div class="achievement-card-large locked">
+                        <div class="achievement-badge">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Knowledge Seeker</h3>
+                        <p>Complete 50 resources</p>
+                        <div class="progress-info">
+                            <small>{{ total_resources }} / 50 resources</small>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</body>
+</html>

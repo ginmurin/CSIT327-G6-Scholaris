@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ study_plan.title }} - Progress</title>
+    <link rel="stylesheet" href="{% static 'progress/css/progress.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-chart-line"></i> {{ study_plan.title }}</h1>
+            <nav class="nav-links">
+                <a href="{% url 'progress:dashboard' %}"><i class="fas fa-arrow-left"></i> Back to Progress</a>
+                <a href="{% url 'studyplan:dashboard' %}"><i class="fas fa-calendar-alt"></i> Study Plans</a>
+            </nav>
+        </header>
+
+        <!-- Plan Overview -->
+        <div class="plan-overview">
+            <div class="overview-card">
+                <h2>Plan Overview</h2>
+                <p class="description">{{ study_plan.description }}</p>
+                
+                <div class="overview-details">
+                    <div class="detail-item">
+                        <i class="fas fa-bullseye"></i>
+                        <strong>Learning Objective:</strong> {{ study_plan.learning_objective }}
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-calendar"></i>
+                        <strong>Duration:</strong> {{ study_plan.start_date|date:"M d, Y" }} - {{ study_plan.end_date|date:"M d, Y" }}
+                    </div>
+                    {% if days_remaining is not None %}
+                        <div class="detail-item">
+                            <i class="fas fa-hourglass-half"></i>
+                            <strong>Days Remaining:</strong> 
+                            <span class="{% if days_remaining < 0 %}overdue{% elif days_remaining < 7 %}warning{% endif %}">
+                                {{ days_remaining }} days
+                            </span>
+                        </div>
+                    {% endif %}
+                    <div class="detail-item">
+                        <i class="fas fa-clock"></i>
+                        <strong>Target Hours/Week:</strong> {{ study_plan.estimated_hours_per_week }}
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Status:</strong> 
+                        <span class="status-badge status-{{ study_plan.status }}">{{ study_plan.get_status_display }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Summary -->
+            <div class="progress-summary-card">
+                <h3><i class="fas fa-chart-pie"></i> Progress Summary</h3>
+                
+                <div class="circular-progress">
+                    <svg viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="90" class="progress-bg"></circle>
+                        <circle cx="100" cy="100" r="90" class="progress-fill" 
+                                style="stroke-dasharray: {{ progress.completion_percentage|floatformat:2|multiply:5.65 }} 565;"></circle>
+                        <text x="100" y="100" class="progress-percentage">{{ progress.completion_percentage|floatformat:0 }}%</text>
+                    </svg>
+                </div>
+
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <i class="fas fa-tasks"></i>
+                        <div>
+                            <strong>{{ progress.completed_resources }}/{{ progress.total_resources }}</strong>
+                            <span>Resources</span>
+                        </div>
+                    </div>
+                    <div class="summary-stat">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <strong>{{ progress.total_hours_spent|floatformat:1 }}h</strong>
+                            <span>Time Spent</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resources Progress -->
+        <section class="resources-section">
+            <h2><i class="fas fa-list-check"></i> Resources Progress</h2>
+            
+            {% if plan_resources %}
+                <div class="resources-list">
+                    {% for plan_resource in plan_resources %}
+                        <div class="resource-item {% if plan_resource.progress.is_completed %}completed{% endif %}">
+                            <div class="resource-main">
+                                <div class="resource-checkbox">
+                                    <input type="checkbox" 
+                                           id="resource-{{ plan_resource.progress.id }}"
+                                           {% if plan_resource.progress.is_completed %}checked{% endif %}
+                                           onchange="toggleCompletion({{ plan_resource.progress.id }}, this)">
+                                    <label for="resource-{{ plan_resource.progress.id }}"></label>
+                                </div>
+                                
+                                <div class="resource-info">
+                                    <h3>{{ plan_resource.resource.title }}</h3>
+                                    <p>{{ plan_resource.resource.description|truncatewords:25 }}</p>
+                                    
+                                    <div class="resource-meta">
+                                        <span class="badge">{{ plan_resource.resource.get_resource_type_display }}</span>
+                                        <span class="badge">{{ plan_resource.resource.platform }}</span>
+                                        <span class="badge">{{ plan_resource.resource.get_difficulty_display }}</span>
+                                        {% if plan_resource.resource.estimated_time %}
+                                            <span class="badge"><i class="fas fa-clock"></i> {{ plan_resource.resource.estimated_time }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <a href="{{ plan_resource.resource.url }}" target="_blank" class="resource-link">
+                                        <i class="fas fa-external-link-alt"></i> Open Resource
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <div class="resource-progress-details">
+                                <div class="progress-slider">
+                                    <label>Progress: <span id="progress-value-{{ plan_resource.progress.id }}">{{ plan_resource.progress.progress_percentage|floatformat:0 }}</span>%</label>
+                                    <input type="range" 
+                                           min="0" 
+                                           max="100" 
+                                           value="{{ plan_resource.progress.progress_percentage }}"
+                                           oninput="updateProgress({{ plan_resource.progress.id }}, this.value)">
+                                </div>
+                                
+                                <div class="time-spent">
+                                    <label>Time Spent (hours):</label>
+                                    <input type="number" 
+                                           step="0.5" 
+                                           min="0"
+                                           value="{{ plan_resource.progress.time_spent }}"
+                                           onchange="updateTimeSpent({{ plan_resource.progress.id }}, this.value)">
+                                </div>
+                                
+                                <div class="notes-section">
+                                    <label>Notes:</label>
+                                    <textarea placeholder="Add your notes about this resource..."
+                                              onchange="updateNotes({{ plan_resource.progress.id }}, this.value)">{{ plan_resource.progress.notes }}</textarea>
+                                </div>
+                                
+                                {% if plan_resource.progress.completed_at %}
+                                    <p class="completion-date">
+                                        <i class="fas fa-check-circle"></i> Completed on {{ plan_resource.progress.completed_at|date:"M d, Y" }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>No Resources Yet</h3>
+                    <p>Add resources to this study plan to start tracking your progress!</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Study Sessions -->
+        {% if study_sessions %}
+            <section class="sessions-section">
+                <h2><i class="fas fa-history"></i> Recent Study Sessions</h2>
+                <div class="sessions-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Resource</th>
+                                <th>Duration</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in study_sessions %}
+                                <tr>
+                                    <td>{{ session.started_at|date:"M d, Y - g:i A" }}</td>
+                                    <td>
+                                        {% if session.resource %}
+                                            {{ session.resource.title }}
+                                        {% else %}
+                                            General Study
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ session.duration|floatformat:1 }} hours</td>
+                                    <td>{{ session.notes|truncatewords:10 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Study Session Tracker -->
+        <section class="session-tracker">
+            <h2><i class="fas fa-play-circle"></i> Study Session Timer</h2>
+            <div class="timer-card">
+                <p>Track your study time for this plan</p>
+                <button class="btn btn-success" onclick="startSession({{ study_plan.id }})">
+                    <i class="fas fa-play"></i> Start Study Session
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+
+        function toggleCompletion(progressId, checkbox) {
+            fetch(`/progress/resource/${progressId}/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const resourceItem = checkbox.closest('.resource-item');
+                    if (data.is_completed) {
+                        resourceItem.classList.add('completed');
+                    } else {
+                        resourceItem.classList.remove('completed');
+                    }
+                    location.reload(); // Reload to update progress stats
+                } else {
+                    alert('Error: ' + data.error);
+                    checkbox.checked = !checkbox.checked;
+                }
+            });
+        }
+
+        function updateProgress(progressId, value) {
+            document.getElementById(`progress-value-${progressId}`).textContent = Math.round(value);
+            
+            const formData = new FormData();
+            formData.append('percentage', value);
+            
+            fetch(`/progress/resource/${progressId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Error updating progress: ' + data.error);
+                }
+            });
+        }
+
+        function updateTimeSpent(progressId, value) {
+            const formData = new FormData();
+            formData.append('time_spent', value);
+            
+            fetch(`/progress/resource/${progressId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+        }
+
+        function updateNotes(progressId, value) {
+            const formData = new FormData();
+            formData.append('notes', value);
+            
+            fetch(`/progress/resource/${progressId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+        }
+
+        function startSession(planId) {
+            fetch(`/progress/session/start/${planId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    alert('Study session started! Don\'t forget to end it when you\'re done.');
+                    // You could add a timer UI here
+                }
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
