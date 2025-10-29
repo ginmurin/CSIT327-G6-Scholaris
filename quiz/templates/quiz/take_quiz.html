@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Quiz - {{ quiz.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .question-option:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        .question-option input[type="radio"] {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">📚 Scholaris</a>
+            <div class="navbar-nav ms-auto">
+                {% if quiz.time_limit %}
+                    <span class="navbar-text text-white me-3">
+                        <i class="fas fa-clock"></i> Time Remaining: <span id="timer">{{ quiz.time_limit }}:00</span>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3><i class="fas fa-clipboard-question"></i> {{ quiz.title }}</h3>
+                <p class="mb-0">{{ quiz.description }}</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Instructions:</strong> Answer all {{ quiz.total_questions }} questions. 
+                    Passing score is {{ quiz.passing_score }}%.
+                    {% if quiz.time_limit %}
+                        You have {{ quiz.time_limit }} minutes to complete this quiz.
+                    {% endif %}
+                </div>
+
+                <form method="post" action="{% url 'submit_quiz' attempt.id %}" id="quizForm">
+                    {% csrf_token %}
+                    
+                    {% for question in questions %}
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5>Question {{ forloop.counter }} of {{ questions|length }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="lead">{{ question.question_text }}</p>
+                                
+                                <div class="options">
+                                    {% for option in question.options.all %}
+                                        <div class="form-check question-option p-3 border rounded mb-2">
+                                            <input class="form-check-input" type="radio" 
+                                                   name="question_{{ question.id }}" 
+                                                   id="option_{{ option.id }}" 
+                                                   value="{{ option.id }}"
+                                                   required>
+                                            <label class="form-check-label w-100" for="option_{{ option.id }}">
+                                                <strong>{% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% endif %}.</strong> {{ option.option_text }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-paper-plane"></i> Submit Quiz
+                        </button>
+                        <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% if quiz.time_limit %}
+    <script>
+        // Timer functionality
+        let timeLeft = {{ quiz.time_limit }} * 60; // Convert to seconds
+        
+        function updateTimer() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            
+            if (timeLeft <= 0) {
+                alert('Time is up! Submitting quiz...');
+                document.getElementById('quizForm').submit();
+            }
+            timeLeft--;
+        }
+        
+        setInterval(updateTimer, 1000);
+    </script>
+    {% endif %}
+    
+    <script>
+        // Confirm before leaving page
+        document.getElementById('quizForm').addEventListener('submit', function() {
+            window.onbeforeunload = null;
+        });
+        
+        window.onbeforeunload = function() {
+            return "Are you sure you want to leave? Your quiz progress will be lost.";
+        };
+    </script>
+</body>
+</html>

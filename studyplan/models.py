@@ -32,12 +32,13 @@ class StudyPlanResource(models.Model):
     study_plan = models.ForeignKey('StudyPlan', on_delete=models.CASCADE, related_name='plan_resources')
     resource = models.ForeignKey('resources.Resource', on_delete=models.CASCADE, related_name='study_plans')
     order_index = models.IntegerField(default=0)
+    priority = models.IntegerField(default=0)  # Added to match database schema
     is_completed = models.BooleanField(default=False)
     completion_date = models.DateField(null=True, blank=True)
     
     class Meta:
         db_table = 'studyplanresource'
-        ordering = ['order_index', 'id']
+        ordering = ['priority', 'order_index', 'id']
         unique_together = [['study_plan', 'resource']]
     
     def __str__(self):

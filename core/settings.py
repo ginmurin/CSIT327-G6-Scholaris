@@ -32,12 +32,13 @@ INSTALLED_APPS = [
     'studyplan',
     'resources',
     'progress',
+    'quiz',
 ]
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyCa30VTsQB8jzY9ACk_kPeTd0FHQ-AmuDU')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyAjPll1Cev_wB9i8U0vvxLvtUeug6y6U-U')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

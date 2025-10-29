@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results - {{ quiz.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">📚 Scholaris</a>
+            <div class="navbar-nav ms-auto">
+                <a href="{% url 'quiz_list' %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="card shadow mb-4">
+            <div class="card-header {% if attempt.is_passed %}bg-success{% else %}bg-danger{% endif %} text-white">
+                <h2><i class="fas fa-{% if attempt.is_passed %}check-circle{% else %}times-circle{% endif %}"></i> 
+                    {% if attempt.is_passed %}Congratulations! You Passed!{% else %}Quiz Not Passed{% endif %}
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h3>{{ attempt.percentage_score|floatformat:1 }}%</h3>
+                        <p class="text-muted">Your Score</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3>{{ attempt.correct_answers }}/{{ attempt.answers_count }}</h3>
+                        <p class="text-muted">Correct Answers</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3>{{ attempt.quiz.passing_score }}%</h3>
+                        <p class="text-muted">Passing Score</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3>Attempt {{ attempt.attempt_number }}</h3>
+                        <p class="text-muted">Attempt Number</p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'quiz_detail' attempt.quiz.id %}" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> View Quiz Details
+                    </a>
+                    {% if attempt.quiz.allow_retake %}
+                        <a href="{% url 'take_quiz' attempt.quiz.id %}" class="btn btn-success">
+                            <i class="fas fa-redo"></i> Retake Quiz
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if attempt.quiz.show_correct_answers %}
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h4><i class="fas fa-list-check"></i> Answer Review</h4>
+                </div>
+                <div class="card-body">
+                    {% for result in results %}
+                        <div class="card mb-3 {% if result.is_correct %}border-success{% else %}border-danger{% endif %}">
+                            <div class="card-header {% if result.is_correct %}bg-success-subtle{% else %}bg-danger-subtle{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>Question {{ forloop.counter }}</strong>
+                                    {% if result.is_correct %}
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> Correct</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-times"></i> Incorrect</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>{{ result.question.question_text }}</strong></p>
+                                
+                                <div class="row">
+                                    {% for option in result.options %}
+                                        <div class="col-md-6 mb-2">
+                                            <div class="
+                                                {% if option.is_correct %}
+                                                    alert alert-success
+                                                {% elif option == result.selected_option and not option.is_correct %}
+                                                    alert alert-danger
+                                                {% else %}
+                                                    alert alert-light
+                                                {% endif %} py-2">
+                                                <strong>{% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% endif %}.</strong> {{ option.option_text }}
+                                                
+                                                {% if option.is_correct %}
+                                                    <i class="fas fa-check-circle text-success float-end"></i>
+                                                {% elif option == result.selected_option %}
+                                                    <i class="fas fa-times-circle text-danger float-end"></i>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                {% if result.question.explanation %}
+                                    <div class="alert alert-info mt-2">
+                                        <strong><i class="fas fa-lightbulb"></i> Explanation:</strong>
+                                        {{ result.question.explanation }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

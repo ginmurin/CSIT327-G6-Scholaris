@@ -1,10 +1,10 @@
-import google.generativeai as genai
+from google import genai
 from django.conf import settings
 import json
+import os
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
-# Use the correct model name from Google AI Studio
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+# Configure the new Google GenAI client
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
 class LearningAIService:
@@ -42,7 +42,10 @@ class LearningAIService:
         """
         
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt
+            )
             # Parse the JSON response
             result_text = response.text.strip()
             
@@ -106,7 +109,10 @@ class LearningAIService:
         """
         
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt
+            )
             result_text = response.text.strip()
             
             # Remove markdown code blocks if present
@@ -166,7 +172,10 @@ class LearningAIService:
         """
         
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt
+            )
             result_text = response.text.strip()
             
             if result_text.startswith('```json'):
@@ -262,7 +271,10 @@ class LearningAIService:
         """
         
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt
+            )
             result_text = response.text.strip()
             
             # Clean markdown formatting
@@ -290,10 +302,12 @@ class LearningAIService:
                 return valid_resources
             else:
                 # If AI gave us search pages, use curated fallback
+                print(f"AI returned search pages for topic: {topic}, using fallback")
                 return LearningAIService._get_curated_fallback_resources(topic, learning_style)
                 
         except Exception as e:
             # Use curated fallback resources
+            print(f"Error generating AI resources for {topic}: {str(e)}")
             return LearningAIService._get_curated_fallback_resources(topic, learning_style)
     
     @staticmethod
@@ -308,6 +322,15 @@ class LearningAIService:
                 {"title": "Automate the Boring Stuff", "type": "interactive", "url": "https://automatetheboringstuff.com/", "platform": "Online Book", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Practical Python programming"},
                 {"title": "LeetCode Python Practice", "type": "practice", "url": "https://leetcode.com/problemset/", "platform": "LeetCode", "difficulty": "intermediate", "estimated_time": "Ongoing", "is_free": True, "description": "Coding challenges in Python"},
                 {"title": "Python Crash Course", "type": "video", "url": "https://www.youtube.com/watch?v=_uQrJ0TkZlc", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "6 hours", "is_free": True, "description": "Programming with Mosh Python tutorial"},
+            ],
+            "java": [
+                {"title": "Java Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=xk4_1vDrzzo", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "4 hours", "is_free": True, "description": "Complete Java tutorial for beginners"},
+                {"title": "Java Programming - MOOC.fi", "type": "interactive", "url": "https://java-programming.mooc.fi/", "platform": "University of Helsinki", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Free comprehensive Java course with exercises"},
+                {"title": "Java Tutorial - W3Schools", "type": "article", "url": "https://www.w3schools.com/java/", "platform": "W3Schools", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Interactive Java tutorial with examples"},
+                {"title": "Java Documentation - Oracle", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/", "platform": "Oracle", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Official Java tutorials from Oracle"},
+                {"title": "Codecademy Learn Java", "type": "interactive", "url": "https://www.codecademy.com/learn/learn-java", "platform": "Codecademy", "difficulty": "beginner", "estimated_time": "25 hours", "is_free": True, "description": "Interactive Java programming course"},
+                {"title": "Java for Complete Beginners - Udemy", "type": "video", "url": "https://www.youtube.com/watch?v=GoXwIVyNvX0", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "16 hours", "is_free": True, "description": "Full Java programming course"},
+                {"title": "JetBrains Academy Java", "type": "interactive", "url": "https://hyperskill.org/tracks/17", "platform": "JetBrains", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Project-based Java learning"},
             ],
             "javascript": [
                 {"title": "JavaScript Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=PkZNo7MFNFg", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "3 hours", "is_free": True, "description": "Complete JavaScript tutorial"},
@@ -426,6 +449,12 @@ class LearningAIService:
                 {"title": "Python Documentation", "type": "article", "url": "https://docs.python.org/3/tutorial/", "platform": "Python.org", "difficulty": "all levels"},
                 {"title": "Real Python Tutorials", "type": "article", "url": "https://realpython.com/", "platform": "Real Python", "difficulty": "intermediate"},
                 {"title": "LeetCode Python", "type": "practice", "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=array", "platform": "LeetCode", "difficulty": "intermediate"},
+            ],
+            "java": [
+                {"title": "Java Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=xk4_1vDrzzo", "platform": "YouTube", "difficulty": "beginner"},
+                {"title": "Java Programming - MOOC.fi", "type": "interactive", "url": "https://java-programming.mooc.fi/", "platform": "University of Helsinki", "difficulty": "beginner"},
+                {"title": "Java Tutorial - W3Schools", "type": "article", "url": "https://www.w3schools.com/java/", "platform": "W3Schools", "difficulty": "beginner"},
+                {"title": "Oracle Java Tutorials", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/", "platform": "Oracle", "difficulty": "all levels"},
             ],
             "javascript": [
                 {"title": "JavaScript Tutorial - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=PkZNo7MFNFg", "platform": "YouTube", "difficulty": "beginner"},
@@ -552,6 +581,8 @@ class LearningAIService:
                     context=context  # Pass the rich context
                 )
                 
+                print(f"AI generated {len(new_resources_data)} resources for topic: {topic}")
+                
                 # Step 4: Save new resources to database (excluding duplicates)
                 new_resources = []
                 for resource_data in new_resources_data[:needed_count * 2]:  # Get extra in case of duplicates
@@ -580,13 +611,14 @@ class LearningAIService:
                             )
                             new_resources.append(resource)
                             existing_urls.add(resource_url)
+                            print(f"Saved new resource: {resource.title}")
                             
                             if len(new_resources) >= needed_count:
                                 break
                         except Exception as e:
                             # Silently skip duplicates, only print other errors
                             if 'duplicate key' not in str(e).lower():
-                                print(f"Error saving resource: {e}")
+                                print(f"Error saving resource '{resource_data.get('title')}': {e}")
                             continue
                 
                 # Combine existing and new resources
@@ -613,7 +645,9 @@ class LearningAIService:
                 
             except Exception as e:
                 # Fallback to existing resources if we have any, otherwise use curated
+                print(f"Error in AI resource generation for {topic}: {str(e)}")
                 if existing_resources:
+                    print(f"Using {len(existing_resources)} existing resources from database")
                     for resource in existing_resources:
                         resource.increment_recommendation_count()
                     
@@ -632,8 +666,10 @@ class LearningAIService:
                     ]
                 else:
                     # No existing resources, use curated fallback
+                    print(f"No existing resources found, using curated fallback for topic: {topic}")
                     return LearningAIService._get_curated_fallback_resources(topic, learning_style)
         
         except Exception as e:
             # Database connection error - use fallback curated resources
+            print(f"Database error in get_smart_resources for {topic}: {str(e)}")
             return LearningAIService._get_curated_fallback_resources(topic, learning_style)

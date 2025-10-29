@@ -1,0 +1,137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz - Scholaris</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">📚 Scholaris</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text text-white me-3">Hello, {{ name }}!</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3><i class="fas fa-plus-circle"></i> Create New Quiz</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Quiz Title *</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger">{{ form.title.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger">{{ form.description.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.study_plan.id_for_label }}" class="form-label">Study Plan (Optional)</label>
+                                    {{ form.study_plan }}
+                                    {% if form.study_plan.errors %}
+                                        <div class="text-danger">{{ form.study_plan.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.difficulty.id_for_label }}" class="form-label">Difficulty *</label>
+                                    {{ form.difficulty }}
+                                    {% if form.difficulty.errors %}
+                                        <div class="text-danger">{{ form.difficulty.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.passing_score.id_for_label }}" class="form-label">Passing Score (%) *</label>
+                                    {{ form.passing_score }}
+                                    {% if form.passing_score.errors %}
+                                        <div class="text-danger">{{ form.passing_score.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.time_limit.id_for_label }}" class="form-label">Time Limit (minutes)</label>
+                                    {{ form.time_limit }}
+                                    {% if form.time_limit.errors %}
+                                        <div class="text-danger">{{ form.time_limit.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.max_attempts.id_for_label }}" class="form-label">Maximum Attempts</label>
+                                {{ form.max_attempts }}
+                                <small class="form-text text-muted">Leave empty for unlimited attempts</small>
+                                {% if form.max_attempts.errors %}
+                                    <div class="text-danger">{{ form.max_attempts.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.shuffle_questions }}
+                                    <label class="form-check-label" for="{{ form.shuffle_questions.id_for_label }}">
+                                        Shuffle Questions
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.show_correct_answers }}
+                                    <label class="form-check-label" for="{{ form.show_correct_answers.id_for_label }}">
+                                        Show Correct Answers After Submission
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.allow_retake }}
+                                    <label class="form-check-label" for="{{ form.allow_retake.id_for_label }}">
+                                        Allow Retake
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> Create Quiz & Add Questions
+                                </button>
+                                <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

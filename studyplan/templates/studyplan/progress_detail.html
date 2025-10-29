@@ -296,16 +296,14 @@
 
           <div class="stat-card">
             <div class="stat-icon">📝</div>
-            <div class="stat-value">0</div>
+            <div class="stat-value">{{ quiz_attempts_count|default:0 }}</div>
             <div class="stat-label">Quizzes Taken</div>
-            <div style="font-size: 11px; color: rgba(240, 147, 251, 0.8); margin-top: 5px; font-weight: 600;">🚧 Coming Soon</div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">�</div>
-            <div class="stat-value">0</div>
+            <div class="stat-icon">💎</div>
+            <div class="stat-value">{{ quiz_count|default:0 }}</div>
             <div class="stat-label">Quiz History</div>
-            <div style="font-size: 11px; color: rgba(240, 147, 251, 0.8); margin-top: 5px; font-weight: 600;">🚧 Coming Soon</div>
           </div>
         </div>
 
@@ -314,14 +312,10 @@
             <span class="btn-icon">📚</span>
             <span>View Resources</span>
           </a>
-          <a href="#" class="action-btn btn-quiz disabled" onclick="return false;">
+          <a href="{% url 'quiz_list' %}?study_plan={{ study_plan.id }}" class="action-btn btn-quiz">
             <span class="btn-icon">📝</span>
             <span>Take Quiz</span>
           </a>
-        </div>
-
-        <div class="info-badge">
-          🚧 Quiz feature coming soon!
         </div>
       </div>
 

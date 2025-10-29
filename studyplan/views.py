@@ -219,7 +219,7 @@ def get_resources(request, plan_id):
             }
             
             # Use SMART resource system with FULL CONTEXT
-            resources = LearningAIService.get_smart_resources(
+            resources_data = LearningAIService.get_smart_resources(
                 topic=study_plan.title,
                 learning_style=user.learningstyle,
                 resource_type="all",
@@ -227,8 +227,11 @@ def get_resources(request, plan_id):
                 context=context
             )
             
+            print(f"Received {len(resources_data)} resources from AI service")
+            
             # Save resources to database for this study plan
-            for index, resource_data in enumerate(resources):
+            resources = []  # Build list of saved resources
+            for index, resource_data in enumerate(resources_data):
                 try:
                     # Get or create the resource
                     resource, created = Resource.objects.get_or_create(
@@ -251,17 +254,39 @@ def get_resources(request, plan_id):
                     spr, _ = StudyPlanResource.objects.get_or_create(
                         study_plan=study_plan,
                         resource=resource,
-                        defaults={'order_index': index}
+                        defaults={
+                            'order_index': index,
+                            'priority': index  # Set priority to match order_index
+                        }
                     )
                     
                     # Create resource progress
-                    ResourceProgress.objects.get_or_create(
+                    resource_progress, _ = ResourceProgress.objects.get_or_create(
                         user=user,
-                        study_plan_resource=spr
+                        study_plan_resource=spr,
+                        defaults={'is_completed': False}
                     )
+                    
+                    # Add to resources list for display
+                    resources.append({
+                        "id": spr.id,
+                        "title": resource.title,
+                        "type": resource.resource_type,
+                        "url": resource.url,
+                        "description": resource.description,
+                        "platform": resource.platform,
+                        "difficulty": resource.difficulty,
+                        "estimated_time": resource.estimated_time,
+                        "is_free": resource.is_free,
+                        "is_completed": spr.is_completed,
+                        "progress_id": resource_progress.id
+                    })
+                    print(f"Saved and added resource: {resource.title}")
                 except Exception as e:
-                    print(f"Error saving resource: {e}")
+                    print(f"Error saving resource '{resource_data.get('title', 'Unknown')}': {e}")
                     continue
+            
+            print(f"Successfully saved {len(resources)} resources to display")
             
             # Update progress count
             progress.update_progress()
@@ -337,6 +362,7 @@ def study_plan_progress(request, plan_id):
     """Show progress page for a specific study plan"""
     from progress.models import Progress, ResourceProgress
     from studyplan.models import StudyPlanResource
+    from quiz.models import Quiz, QuizAttempt
     
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
@@ -353,10 +379,19 @@ def study_plan_progress(request, plan_id):
     if created or progress.total_resources == 0:
         progress.update_progress()
     
+    # Get quiz statistics
+    quiz_count = Quiz.objects.filter(study_plan=study_plan).count()
+    quiz_attempts_count = QuizAttempt.objects.filter(
+        user=user,
+        quiz__study_plan=study_plan
+    ).count()
+    
     return render(request, 'studyplan/progress_detail.html', {
         'study_plan': study_plan,
         'progress': progress,
         'user': user,
-        'name': request.session.get("app_user_name", "User")
+        'name': request.session.get("app_user_name", "User"),
+        'quiz_count': quiz_count,
+        'quiz_attempts_count': quiz_attempts_count,
     })
 

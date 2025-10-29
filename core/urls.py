@@ -71,6 +71,7 @@ urlpatterns = [
     path("home/", home, name="home"),
     path("study-plans/", include("studyplan.urls")),
     path("progress/", include("progress.urls")),
+    path("quiz/", include("quiz.urls")),
 ]
 
 # Serve media files in development

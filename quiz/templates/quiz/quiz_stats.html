@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Statistics - Scholaris</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .stats-container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        
+        .stats-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .stats-header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-box i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .quiz-stats-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            color: #667eea;
+        }
+        
+        .badge-custom {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .attempt-row {
+            transition: all 0.3s ease;
+        }
+        
+        .attempt-row:hover {
+            background-color: #f0f4ff !important;
+            transform: scale(1.01);
+        }
+    </style>
+</head>
+<body>
+    {% if selected_study_plan %}
+        <a href="{% url 'quiz_list' %}?study_plan={{ selected_study_plan.id }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Quizzes
+        </a>
+    {% else %}
+        <a href="{% url 'quiz_list' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Quizzes
+        </a>
+    {% endif %}
+
+    <div class="stats-container">
+        <div class="stats-header">
+            <h1><i class="fas fa-chart-bar"></i> Quiz Statistics</h1>
+            {% if selected_study_plan %}
+                <p>{{ selected_study_plan.topic }}</p>
+            {% else %}
+                <p>Your Quiz Performance Overview</p>
+            {% endif %}
+        </div>
+
+        <!-- Overall Statistics -->
+        <div class="stats-card">
+            <h2 class="section-title"><i class="fas fa-trophy"></i> Overall Performance</h2>
+            <div class="stat-grid">
+                <div class="stat-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-clipboard-check"></i>
+                    <div class="stat-value">{{ total_attempts }}</div>
+                    <div class="stat-label">Total Attempts</div>
+                </div>
+                
+                <div class="stat-box" style="background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="stat-value">{{ completed_attempts }}</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                
+                <div class="stat-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <i class="fas fa-star"></i>
+                    <div class="stat-value">{{ passed_attempts }}</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                
+                <div class="stat-box" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <i class="fas fa-book-open"></i>
+                    <div class="stat-value">{{ quizzes.count }}</div>
+                    <div class="stat-label">Available Quizzes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz-Specific Stats -->
+        <div class="stats-card">
+            <h2 class="section-title"><i class="fas fa-list-ul"></i> Quiz Performance Breakdown</h2>
+            {% if quiz_stats %}
+                <div class="quiz-stats-table">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Quiz Name</th>
+                                <th>Attempts</th>
+                                <th>Best Score</th>
+                                <th>Difficulty</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in quiz_stats %}
+                                <tr>
+                                    <td><strong>{{ stat.quiz.title }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ stat.attempts_count }} attempt{{ stat.attempts_count|pluralize }}</span>
+                                    </td>
+                                    <td>
+                                        {% if stat.best_attempt %}
+                                            <strong class="{% if stat.best_score >= stat.quiz.passing_score %}text-success{% else %}text-danger{% endif %}">
+                                                {{ stat.best_score }}%
+                                            </strong>
+                                        {% else %}
+                                            <span class="text-muted">Not attempted</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.quiz.difficulty == 'easy' %}
+                                            <span class="badge bg-info">Easy</span>
+                                        {% elif stat.quiz.difficulty == 'medium' %}
+                                            <span class="badge bg-warning">Medium</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Hard</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.quiz.status == 'published' %}
+                                            <a href="{% url 'take_quiz' stat.quiz.id %}" class="btn btn-sm btn-success">
+                                                <i class="fas fa-play"></i> Take Quiz
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'quiz_detail' stat.quiz.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No quiz statistics available yet.</p>
+                    <a href="{% url 'quiz_list' %}{% if selected_study_plan %}?study_plan={{ selected_study_plan.id }}{% endif %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Quizzes
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Attempts -->
+        {% if attempts %}
+            <div class="stats-card">
+                <h2 class="section-title"><i class="fas fa-history"></i> Recent Attempts</h2>
+                <div class="quiz-stats-table">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Quiz</th>
+                                <th>Date</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt in attempts|slice:":10" %}
+                                <tr class="attempt-row">
+                                    <td><strong>{{ attempt.quiz.title }}</strong></td>
+                                    <td>{{ attempt.started_at|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        <strong class="{% if attempt.percentage_score >= attempt.quiz.passing_score %}text-success{% else %}text-danger{% endif %}">
+                                            {{ attempt.percentage_score }}%
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% if attempt.is_passed %}
+                                            <span class="badge bg-success"><i class="fas fa-check"></i> Passed</span>
+                                        {% else %}
+                                            <span class="badge bg-danger"><i class="fas fa-times"></i> Failed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'quiz_result' attempt.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View Results
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
