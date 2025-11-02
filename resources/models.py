@@ -42,7 +42,6 @@ class Resource(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', db_index=True)
     difficulty = models.CharField(max_length=15, choices=DIFFICULTY_CHOICES, default='all')
     platform = models.CharField(max_length=100)
-    learning_style = models.CharField(max_length=200, blank=True)
     estimated_time = models.CharField(max_length=50, blank=True)
     is_external = models.BooleanField(default=True)
     is_free = models.BooleanField(default=True)
@@ -56,7 +55,7 @@ class Resource(models.Model):
         ordering = ['-times_recommended', '-created_at']
         indexes = [
             models.Index(fields=['topic', 'resource_type']),
-            models.Index(fields=['category', 'learning_style']),
+            models.Index(fields=['category']),
         ]
     
     def __str__(self):

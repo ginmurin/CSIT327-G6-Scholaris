@@ -6,8 +6,111 @@
   <title>Create Study Plan - Learning Pathway</title>
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <link rel="stylesheet" href="{% static 'studyplan/css/studyplan.css' %}?v=2">
+  <style>
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease-in;
+    }
+    
+    .loading-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    
+    .loading-content {
+      text-align: center;
+      color: white;
+    }
+    
+    .loading-spinner {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 30px;
+      border: 6px solid rgba(255, 255, 255, 0.3);
+      border-top: 6px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .loading-subtext {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+    
+    .loading-steps {
+      text-align: left;
+      max-width: 400px;
+      margin: 0 auto;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    
+    .loading-step {
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .step-icon {
+      font-size: 18px;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
 </head>
 <body>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">🤖 Creating Your Study Plan</div>
+      <div class="loading-subtext">AI is generating personalized recommendations...</div>
+      <div class="loading-steps">
+        <div class="loading-step">
+          <span class="step-icon">✓</span>
+          <span>Analyzing your goals</span>
+        </div>
+        <div class="loading-step">
+          <span class="step-icon">⏳</span>
+          <span>Finding best learning resources</span>
+        </div>
+        <div class="loading-step">
+          <span class="step-icon">⏳</span>
+          <span>Creating study schedule</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="container form-container">
     <div class="header">
       <h1>✨ Create New Study Plan</h1>
@@ -15,7 +118,7 @@
       {% if user %}
         <div class="user-profile-badge">
           <span class="badge-icon">🎯</span>
-          <span class="badge-text">{{ user.learningstyle }} Learner</span>
+          <span class="badge-text">{{ user.name }}</span>
         </div>
       {% endif %}
     </div>
@@ -130,5 +233,13 @@
       </div>
     </form>
   </div>
+
+  <script>
+    // Show loading overlay when form is submitted
+    document.querySelector('.study-plan-form').addEventListener('submit', function(e) {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      loadingOverlay.classList.add('active');
+    });
+  </script>
 </body>
 </html>

@@ -26,17 +26,6 @@ class RegisterForm(forms.Form):
         label="Confirm Password"
     )
     role = forms.CharField(max_length=50, required=False, initial="student", label="Role")
-    learningstyle = forms.ChoiceField(
-        choices=[
-            ('', 'Select Your Learning Style'),
-            ('Visual', 'Visual - Learn through images, diagrams, and videos'),
-            ('Auditory', 'Auditory - Learn through listening and discussions'),
-            ('Kinesthetic', 'Kinesthetic - Learn through hands-on activities'),
-            ('Reading/Writing', 'Reading/Writing - Learn through text and notes')
-        ],
-        required=True,
-        label="Learning Style"
-    )
     goals = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "What do you want to achieve? (e.g., Master Python, Pass exams, Learn web development)"}),
         required=True,
@@ -82,13 +71,6 @@ class RegisterForm(forms.Form):
         
         return password
     
-    def clean_learningstyle(self):
-        """Validate learning style is selected"""
-        learningstyle = self.cleaned_data.get("learningstyle")
-        if not learningstyle or learningstyle == '':
-            raise forms.ValidationError("Please select your learning style.")
-        return learningstyle
-    
     def clean_goals(self):
         """Validate learning goals are provided"""
         goals = self.cleaned_data.get("goals", "").strip()
@@ -117,7 +99,6 @@ class RegisterForm(forms.Form):
             email=d["email"].lower(),
             password=make_password(d["password1"]),  # Hash password securely
             role="student",
-            learningstyle=d["learningstyle"],
             goals=d["goals"].strip(),
         )
     
@@ -151,17 +132,6 @@ class ProfileForm(forms.ModelForm):
         label="Profile Picture",
         help_text="Max file size: 5MB. Allowed formats: JPG, PNG, GIF",
         widget=forms.FileInput(attrs={'accept': 'image/jpeg,image/png,image/gif'})
-    )
-    
-    learningstyle = forms.ChoiceField(
-        choices=[
-            ('Visual', 'Visual - Learn through images, diagrams, and videos'),
-            ('Auditory', 'Auditory - Learn through listening and discussions'),
-            ('Kinesthetic', 'Kinesthetic - Learn through hands-on activities'),
-            ('Reading/Writing', 'Reading/Writing - Learn through text and notes')
-        ],
-        required=True,
-        label="Learning Style"
     )
     
     timezone = forms.ChoiceField(
@@ -201,14 +171,13 @@ class ProfileForm(forms.ModelForm):
     
     class Meta:
         model = AppUser
-        fields = ['name', 'learningstyle', 'goals', 'timezone', 'language']
+        fields = ['name', 'goals', 'timezone', 'language']
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'Enter your full name'}),
             'goals': forms.Textarea(attrs={'rows': 3, 'placeholder': 'What do you want to achieve?'}),
         }
         labels = {
             'name': 'Full Name',
-            'learningstyle': 'Learning Style',
             'goals': 'Learning Goals',
         }
     

@@ -28,7 +28,7 @@
         </div>
         <div class="welcome-text">
           <h1>Welcome back, {{ name }}! 🎓</h1>
-          <p>{{ user.learningstyle }} Learner - Ready to continue your journey?</p>
+          <p>Ready to continue your journey?</p>
         </div>
       </div>
       <div class="header-actions">
@@ -118,7 +118,7 @@
     <div class="ai-recommendations">
       <div class="ai-header">
         <h2>🤖 Your Personalized Learning Plan</h2>
-        <p>AI-powered recommendations based on your {{ user.learningstyle }} learning style</p>
+        <p>AI-powered recommendations tailored to your goals</p>
       </div>
 
       <div class="recommendations-grid">
@@ -197,7 +197,7 @@
 
         <!-- Tips -->
         <div class="recommendation-card card-highlight">
-          <h3>💡 Pro Tips for {{ user.learningstyle }} Learners</h3>
+          <h3>💡 Pro Learning Tips</h3>
           <ul class="tips-list">
             {% for tip in recommendations.tips %}
               <li>{{ tip }}</li>

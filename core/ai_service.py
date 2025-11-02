@@ -2,19 +2,65 @@ from google import genai
 from django.conf import settings
 import json
 import os
+import time
 
 # Configure the new Google GenAI client
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
+def _call_ai_with_retry(model, prompt, max_retries=3, initial_wait=2):
+    """
+    Call Gemini AI with exponential backoff retry logic.
+    
+    Args:
+        model: Model name to use
+        prompt: Prompt to send
+        max_retries: Maximum number of retry attempts (default: 3)
+        initial_wait: Initial wait time in seconds (default: 2)
+    
+    Returns:
+        Response text from the AI
+    
+    Raises:
+        Exception: If all retries fail
+    """
+    for attempt in range(max_retries):
+        try:
+            print(f"🤖 AI request attempt {attempt + 1}/{max_retries}")
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt
+            )
+            print(f"✅ AI request successful on attempt {attempt + 1}")
+            return response.text
+        except Exception as e:
+            error_str = str(e)
+            is_rate_limit = '429' in error_str or 'RESOURCE_EXHAUSTED' in error_str
+            is_last_attempt = attempt == max_retries - 1
+            
+            if is_rate_limit and not is_last_attempt:
+                # Exponential backoff: 2s, 4s, 8s
+                wait_time = initial_wait * (2 ** attempt)
+                print(f"⚠️ Rate limit hit (attempt {attempt + 1}/{max_retries})")
+                print(f"⏳ Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
+                continue  # Continue to next iteration
+            else:
+                # Not a rate limit error, or last attempt - raise the exception
+                print(f"❌ AI request failed: {error_str}")
+                raise
+    
+    # If we get here, all retries failed
+    raise Exception(f"All {max_retries} retry attempts failed")
+
+
 class LearningAIService:
     
     @staticmethod
-    def generate_study_recommendations(learning_style, goals, topic=None):
+    def generate_study_recommendations(goals, topic=None):
         prompt = f"""
         You are an expert educational advisor. Create personalized study recommendations for a student with the following profile:
         
-        Learning Style: {learning_style}
         Goals: {goals}
         {f'Current Topic: {topic}' if topic else ''}
         
@@ -22,7 +68,7 @@ class LearningAIService:
         {{
             "study_techniques": ["technique1", "technique2", "technique3"],
             "recommended_resources": [
-                {{"type": "video", "title": "resource name", "description": "why it fits their learning style"}},
+                {{"type": "video", "title": "resource name", "description": "why this resource helps"}},
                 {{"type": "article", "title": "resource name", "description": "why it's helpful"}},
                 {{"type": "practice", "title": "resource name", "description": "hands-on activity"}}
             ],
@@ -34,20 +80,18 @@ class LearningAIService:
             "tips": ["tip1", "tip2", "tip3"]
         }}
         
-        Make sure recommendations match their {learning_style} learning style:
-        - Visual: Videos, diagrams, infographics, mind maps
-        - Auditory: Podcasts, lectures, discussions, audio books
-        - Kinesthetic: Hands-on projects, experiments, practice exercises
-        - Reading/Writing: Articles, books, note-taking, written summaries
+        Include diverse resource types (videos, articles, interactive tools, practice exercises) to cater to different learning preferences.
         """
         
         try:
-            response = client.models.generate_content(
+            # Use retry logic for AI API call
+            result_text = _call_ai_with_retry(
                 model='gemini-2.0-flash-exp',
-                contents=prompt
+                prompt=prompt,
+                max_retries=3,
+                initial_wait=2
             )
-            # Parse the JSON response
-            result_text = response.text.strip()
+            result_text = result_text.strip()
             
             # Remove markdown code blocks if present
             if result_text.startswith('```json'):
@@ -63,7 +107,7 @@ class LearningAIService:
             # Return a basic fallback if AI fails
             return {
                 "study_techniques": [
-                    f"Use {learning_style.lower()}-focused learning methods",
+                    "Use active learning methods",
                     "Practice regularly with spaced repetition",
                     "Set specific, measurable goals"
                 ],
@@ -75,7 +119,7 @@ class LearningAIService:
                     "breakdown": {"theory": 40, "practice": 60}
                 },
                 "milestones": ["Complete basic concepts", "Practice intermediate topics", "Master advanced material"],
-                "tips": [f"Focus on {learning_style.lower()} learning methods", "Stay consistent", "Track your progress"],
+                "tips": ["Focus on diverse learning methods", "Stay consistent", "Track your progress"],
                 "error": str(e)
             }
     
@@ -109,11 +153,14 @@ class LearningAIService:
         """
         
         try:
-            response = client.models.generate_content(
+            # Use retry logic for AI API call
+            result_text = _call_ai_with_retry(
                 model='gemini-2.0-flash-exp',
-                contents=prompt
+                prompt=prompt,
+                max_retries=3,
+                initial_wait=2
             )
-            result_text = response.text.strip()
+            result_text = result_text.strip()
             
             # Remove markdown code blocks if present
             if result_text.startswith('```json'):
@@ -147,11 +194,10 @@ class LearningAIService:
             }
     
     @staticmethod
-    def analyze_progress(quiz_results, learning_style):
+    def analyze_progress(quiz_results):
         prompt = f"""
         Analyze this student's quiz performance:
         
-        Learning Style: {learning_style}
         Quiz Results: {json.dumps(quiz_results)}
         
         Provide analysis in JSON format:
@@ -168,15 +214,18 @@ class LearningAIService:
             "encouragement": "motivational message"
         }}
         
-        Consider their {learning_style} learning style in recommendations.
+        Provide actionable recommendations with diverse learning approaches.
         """
         
         try:
-            response = client.models.generate_content(
+            # Use retry logic for AI API call
+            result_text = _call_ai_with_retry(
                 model='gemini-2.0-flash-exp',
-                contents=prompt
+                prompt=prompt,
+                max_retries=3,
+                initial_wait=2
             )
-            result_text = response.text.strip()
+            result_text = result_text.strip()
             
             if result_text.startswith('```json'):
                 result_text = result_text[7:]
@@ -199,17 +248,13 @@ class LearningAIService:
             }
     
     @staticmethod
-    def suggest_resources(topic, learning_style, resource_type="all", context=None):
+    def suggest_resources(topic, resource_type="all", context=None):
         # Build enhanced prompt with full context
         context_info = ""
         if context:
-            # Use learning style from context if provided, otherwise use parameter
-            actual_learning_style = context.get('learning_style', learning_style)
-            
             context_info = f"""
         
         STUDY PLAN DETAILS:
-        - Learning Style: {actual_learning_style} (CRITICAL: Prioritize {actual_learning_style}-friendly resources!)
         - Study Plan Description: {context.get('description', 'Not provided')}
         - Learning Objective: {context.get('learning_objective', 'Not specified')}
         - Preferred Resource Types: {context.get('preferred_resources', 'Any type')}
@@ -218,18 +263,15 @@ class LearningAIService:
         
         IMPORTANT: Recommend resources that specifically help achieve the Learning Objective stated above.
         Focus on resources that match:
-        1. Their {actual_learning_style} learning style (MOST IMPORTANT)
-        2. The specific learning objective they want to achieve
-        3. Their preferred resource formats
-        4. Their study timeline and time commitment
+        1. The specific learning objective they want to achieve
+        2. Their preferred resource formats
+        3. Their study timeline and time commitment
         """
-            learning_style = actual_learning_style  # Update to use context value
         
         prompt = f"""
         You are a learning resource curator. Find 7 REAL, SPECIFIC learning resources with DIRECT URLs for:
         
         Topic: {topic}
-        Learning Style: {learning_style}
         Resource Type: {resource_type}
         {context_info}
         
@@ -261,21 +303,22 @@ class LearningAIService:
         Resource types: video, article, interactive, course, practice, documentation
         Platforms: YouTube, freeCodeCamp, MDN, W3Schools, Coursera, Khan Academy, Udemy, Codecademy, Real Python, etc.
         
-        For {learning_style} learners, prioritize:
-        - Visual: YouTube tutorials with visuals, animated explanations
-        - Auditory: Video lectures with clear narration, podcasts
-        - Kinesthetic: Interactive coding platforms (Codecademy, freeCodeCamp), hands-on projects
-        - Reading/Writing: Documentation, blog tutorials, written guides
+        Provide diverse resource types to accommodate different learning preferences:
+        - Videos with clear explanations and demonstrations
+        - Interactive coding platforms for hands-on practice
+        - Articles and documentation for in-depth reading
+        - Courses for structured learning paths
         
         Return ONLY the JSON array, no markdown, no extra text.
         """
         
         try:
-            response = client.models.generate_content(
+            result_text = _call_ai_with_retry(
                 model='gemini-2.0-flash-exp',
-                contents=prompt
+                prompt=prompt,
+                max_retries=3,
+                initial_wait=2
             )
-            result_text = response.text.strip()
             
             # Clean markdown formatting
             if result_text.startswith('```json'):
@@ -303,15 +346,16 @@ class LearningAIService:
             else:
                 # If AI gave us search pages, use curated fallback
                 print(f"AI returned search pages for topic: {topic}, using fallback")
-                return LearningAIService._get_curated_fallback_resources(topic, learning_style)
+                return LearningAIService._get_curated_fallback_resources(topic)
                 
         except Exception as e:
             # Use curated fallback resources
             print(f"Error generating AI resources for {topic}: {str(e)}")
-            return LearningAIService._get_curated_fallback_resources(topic, learning_style)
+            print(f"Falling back to curated resources for topic: {topic}")
+            return LearningAIService._get_curated_fallback_resources(topic)
     
     @staticmethod
-    def _get_curated_fallback_resources(topic, learning_style):
+    def _get_curated_fallback_resources(topic):
         # Extensive curated resource database with REAL URLs
         curated_resources = {
             "python": [
@@ -328,6 +372,8 @@ class LearningAIService:
                 {"title": "Java Programming - MOOC.fi", "type": "interactive", "url": "https://java-programming.mooc.fi/", "platform": "University of Helsinki", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Free comprehensive Java course with exercises"},
                 {"title": "Java Tutorial - W3Schools", "type": "article", "url": "https://www.w3schools.com/java/", "platform": "W3Schools", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Interactive Java tutorial with examples"},
                 {"title": "Java Documentation - Oracle", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/", "platform": "Oracle", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Official Java tutorials from Oracle"},
+                {"title": "Java Concurrency Tutorial", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/essential/concurrency/", "platform": "Oracle", "difficulty": "intermediate", "estimated_time": "3 hours", "is_free": True, "description": "Official Java threading and concurrency guide"},
+                {"title": "Java Multithreading - Baeldung", "type": "article", "url": "https://www.baeldung.com/java-concurrency", "platform": "Baeldung", "difficulty": "intermediate", "estimated_time": "2 hours", "is_free": True, "description": "Comprehensive Java threading tutorials"},
                 {"title": "Codecademy Learn Java", "type": "interactive", "url": "https://www.codecademy.com/learn/learn-java", "platform": "Codecademy", "difficulty": "beginner", "estimated_time": "25 hours", "is_free": True, "description": "Interactive Java programming course"},
                 {"title": "Java for Complete Beginners - Udemy", "type": "video", "url": "https://www.youtube.com/watch?v=GoXwIVyNvX0", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "16 hours", "is_free": True, "description": "Full Java programming course"},
                 {"title": "JetBrains Academy Java", "type": "interactive", "url": "https://hyperskill.org/tracks/17", "platform": "JetBrains", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Project-based Java learning"},
@@ -428,20 +474,11 @@ class LearningAIService:
                 {"title": "YouTube EDU", "type": "video", "url": "https://www.youtube.com/edu", "platform": "YouTube", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Educational videos"},
             ]
         
-        # Sort by learning style preference
-        if learning_style == "Visual":
-            matched_resources.sort(key=lambda x: 0 if x['type'] == 'video' else 1)
-        elif learning_style == "Auditory":
-            matched_resources.sort(key=lambda x: 0 if x['type'] == 'video' else 1)
-        elif learning_style == "Kinesthetic":
-            matched_resources.sort(key=lambda x: 0 if x['type'] in ['interactive', 'practice'] else 1)
-        elif learning_style == "Reading/Writing":
-            matched_resources.sort(key=lambda x: 0 if x['type'] in ['article', 'course'] else 1)
-        
+        # Return diverse mix of resources
         return matched_resources[:7]  # Return top 7
     
     @staticmethod
-    def get_topic_specific_resources(topic, learning_style):
+    def get_topic_specific_resources(topic):
         # Common resource databases by topic
         resource_db = {
             "python": [
@@ -501,24 +538,11 @@ class LearningAIService:
                 {"title": f"FreeCodeCamp", "type": "interactive", "url": "https://www.freecodecamp.org/learn", "platform": "freeCodeCamp", "difficulty": "beginner"},
             ]
         
-        # Filter by learning style preference
-        if learning_style == "Visual":
-            # Prioritize videos
-            matching_resources.sort(key=lambda x: 0 if x['type'] == 'video' else 1)
-        elif learning_style == "Auditory":
-            # Prioritize videos with good audio explanation
-            matching_resources.sort(key=lambda x: 0 if x['type'] == 'video' else 1)
-        elif learning_style == "Kinesthetic":
-            # Prioritize interactive/practice
-            matching_resources.sort(key=lambda x: 0 if x['type'] in ['interactive', 'practice'] else 1)
-        elif learning_style == "Reading/Writing":
-            # Prioritize articles
-            matching_resources.sort(key=lambda x: 0 if x['type'] == 'article' else 1)
-        
+        # Return diverse mix of resource types
         return matching_resources[:5]  # Return top 5
 
     @staticmethod
-    def get_smart_resources(topic, learning_style, resource_type="all", limit=5, context=None):
+    def get_smart_resources(topic, resource_type="all", limit=5, context=None):
         from resources.models import Resource
         from django.db.models import Q
         from django.db import connection
@@ -576,7 +600,6 @@ class LearningAIService:
             try:
                 new_resources_data = LearningAIService.suggest_resources(
                     topic, 
-                    learning_style, 
                     resource_type,
                     context=context  # Pass the rich context
                 )
@@ -604,7 +627,6 @@ class LearningAIService:
                                 category=category,
                                 difficulty=resource_data.get('difficulty', 'all'),
                                 platform=resource_data.get('platform', 'Web'),
-                                learning_style=learning_style,
                                 estimated_time=resource_data.get('estimated_time', 'Varies'),
                                 is_free=resource_data.get('is_free', True),
                                 times_recommended=1  # First recommendation
@@ -667,9 +689,9 @@ class LearningAIService:
                 else:
                     # No existing resources, use curated fallback
                     print(f"No existing resources found, using curated fallback for topic: {topic}")
-                    return LearningAIService._get_curated_fallback_resources(topic, learning_style)
+                    return LearningAIService._get_curated_fallback_resources(topic)
         
         except Exception as e:
             # Database connection error - use fallback curated resources
             print(f"Database error in get_smart_resources for {topic}: {str(e)}")
-            return LearningAIService._get_curated_fallback_resources(topic, learning_style)
+            return LearningAIService._get_curated_fallback_resources(topic)

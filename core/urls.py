@@ -31,7 +31,6 @@ def home(request):
     recommendations = None
     try:
         recommendations = LearningAIService.generate_study_recommendations(
-            learning_style=user.learningstyle,
             goals=user.goals
         )
         
@@ -44,7 +43,6 @@ def home(request):
             # Replace generic recommendations with smart database-backed resources
             smart_resources = LearningAIService.get_smart_resources(
                 topic=topic,
-                learning_style=user.learningstyle,
                 resource_type="all",
                 limit=5
             )

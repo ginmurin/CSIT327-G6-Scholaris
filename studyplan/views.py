@@ -68,7 +68,6 @@ def create_study_plan(request):
             # Generate topic-specific AI recommendations
             try:
                 topic_recommendations = LearningAIService.generate_study_recommendations(
-                    learning_style=user.learningstyle,
                     goals=user.goals,
                     topic=study_plan.title  # Use the study plan title as topic
                 )
@@ -88,7 +87,6 @@ def create_study_plan(request):
         # Generate general AI recommendations to help user plan
         try:
             ai_recommendations = LearningAIService.generate_study_recommendations(
-                learning_style=user.learningstyle,
                 goals=user.goals
             )
         except Exception as e:
@@ -201,13 +199,12 @@ def get_resources(request, plan_id):
                     "progress_id": resource_progress.id
                 })
         else:
-            # Generate new resources via AI
+            # Generate new resources via AI and save them automatically
             # Build rich context from study plan details
             duration_days = (study_plan.end_date - study_plan.start_date).days
             duration_weeks = duration_days // 7
             
             context = {
-                'learning_style': user.learningstyle,
                 'description': study_plan.description or 'No description provided',
                 'learning_objective': study_plan.learning_objective,
                 'preferred_resources': study_plan.preferred_resources or 'Any type',
@@ -221,7 +218,6 @@ def get_resources(request, plan_id):
             # Use SMART resource system with FULL CONTEXT
             resources_data = LearningAIService.get_smart_resources(
                 topic=study_plan.title,
-                learning_style=user.learningstyle,
                 resource_type="all",
                 limit=8,
                 context=context
@@ -244,7 +240,6 @@ def get_resources(request, plan_id):
                             'category': Resource.detect_category_from_topic(study_plan.title),
                             'difficulty': resource_data.get('difficulty', 'all'),
                             'platform': resource_data.get('platform', 'Web'),
-                            'learning_style': user.learningstyle,
                             'estimated_time': resource_data.get('estimated_time', 'Varies'),
                             'is_free': resource_data.get('is_free', True),
                         }
@@ -304,6 +299,91 @@ def get_resources(request, plan_id):
         messages.error(request, "Database connection error. Please try again.")
         print(f"Database error in get_resources: {e}")
         return redirect('list_study_plans')
+
+@require_login
+def add_selected_resources(request, plan_id):
+    """Save selected AI-suggested resources to the study plan"""
+    from django.http import JsonResponse
+    from resources.models import Resource
+    from studyplan.models import StudyPlanResource
+    from progress.models import Progress, ResourceProgress
+    import json
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+    
+    user_id = request.session.get("app_user_id")
+    user = User.objects.get(id=user_id)
+    
+    try:
+        study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+        
+        # Parse the selected resources from request body
+        data = json.loads(request.body)
+        selected_resources = data.get('resources', [])
+        
+        if not selected_resources:
+            return JsonResponse({'success': False, 'error': 'No resources selected'}, status=400)
+        
+        # Get current max order_index
+        max_order = StudyPlanResource.objects.filter(study_plan=study_plan).count()
+        
+        saved_count = 0
+        for index, resource_data in enumerate(selected_resources):
+            try:
+                # Get or create the resource
+                resource, created = Resource.objects.get_or_create(
+                    url=resource_data['url'],
+                    defaults={
+                        'topic': study_plan.title,
+                        'title': resource_data['title'],
+                        'description': resource_data.get('description', ''),
+                        'resource_type': resource_data.get('type', 'article'),
+                        'category': Resource.detect_category_from_topic(study_plan.title),
+                        'difficulty': resource_data.get('difficulty', 'all'),
+                        'platform': resource_data.get('platform', 'Web'),
+                        'estimated_time': resource_data.get('estimated_time', 'Varies'),
+                        'is_free': resource_data.get('is_free', True),
+                    }
+                )
+                
+                # Link resource to study plan (check if not already linked)
+                spr, spr_created = StudyPlanResource.objects.get_or_create(
+                    study_plan=study_plan,
+                    resource=resource,
+                    defaults={
+                        'order_index': max_order + index,
+                        'priority': max_order + index
+                    }
+                )
+                
+                if spr_created:
+                    # Create resource progress
+                    ResourceProgress.objects.get_or_create(
+                        user=user,
+                        study_plan_resource=spr,
+                        defaults={'is_completed': False}
+                    )
+                    saved_count += 1
+                    print(f"Saved resource: {resource.title}")
+                    
+            except Exception as e:
+                print(f"Error saving resource '{resource_data.get('title', 'Unknown')}': {e}")
+                continue
+        
+        # Update progress
+        progress = Progress.objects.get(user=user, study_plan=study_plan)
+        progress.update_progress()
+        
+        return JsonResponse({
+            'success': True,
+            'saved_count': saved_count,
+            'message': f'Successfully added {saved_count} resource{"s" if saved_count != 1 else ""} to your study plan!'
+        })
+        
+    except Exception as e:
+        print(f"Error in add_selected_resources: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @require_login
 def toggle_resource_completion(request, plan_id, resource_id):

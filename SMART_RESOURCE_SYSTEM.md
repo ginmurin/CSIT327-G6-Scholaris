@@ -494,3 +494,4 @@ Month 1: 500+ resources across 50+ topics
 5. **Check admin**: View resource database growth in admin panel
 
 Your platform is now intelligent, diverse, and ever-improving! 🎉
+added na quiz user input nya nag add kos requirements.txt check lang nya

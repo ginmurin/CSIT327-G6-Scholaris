@@ -97,6 +97,203 @@
     .main-content.visible {
       opacity: 1;
     }
+
+    /* Progress Section Styles */
+    .progress-section {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .progress-header h3 {
+      margin: 0;
+      color: #667eea;
+      font-size: 1.3em;
+    }
+
+    .progress-stats {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .progress-stats span {
+      font-size: 0.95em;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .progress-percentage {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 1.1em !important;
+    }
+
+    .progress-bar-container {
+      background: #e0e0e0;
+      border-radius: 10px;
+      height: 20px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+
+    .progress-details {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .progress-details span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Toggle Switch Styles */
+    .checkbox-wrapper-10 .tgl {
+      display: none;
+    }
+
+    .checkbox-wrapper-10 .tgl,
+    .checkbox-wrapper-10 .tgl:after,
+    .checkbox-wrapper-10 .tgl:before,
+    .checkbox-wrapper-10 .tgl *,
+    .checkbox-wrapper-10 .tgl *:after,
+    .checkbox-wrapper-10 .tgl *:before,
+    .checkbox-wrapper-10 .tgl + .tgl-btn {
+      box-sizing: border-box;
+    }
+
+    .checkbox-wrapper-10 .tgl::-moz-selection,
+    .checkbox-wrapper-10 .tgl:after::-moz-selection,
+    .checkbox-wrapper-10 .tgl:before::-moz-selection,
+    .checkbox-wrapper-10 .tgl *::-moz-selection,
+    .checkbox-wrapper-10 .tgl *:after::-moz-selection,
+    .checkbox-wrapper-10 .tgl *:before::-moz-selection,
+    .checkbox-wrapper-10 .tgl + .tgl-btn::-moz-selection,
+    .checkbox-wrapper-10 .tgl::selection,
+    .checkbox-wrapper-10 .tgl:after::selection,
+    .checkbox-wrapper-10 .tgl:before::selection,
+    .checkbox-wrapper-10 .tgl *::selection,
+    .checkbox-wrapper-10 .tgl *:after::selection,
+    .checkbox-wrapper-10 .tgl *:before::selection,
+    .checkbox-wrapper-10 .tgl + .tgl-btn::selection {
+      background: none;
+    }
+
+    .checkbox-wrapper-10 .tgl + .tgl-btn {
+      outline: 0;
+      display: block;
+      width: 4em;
+      height: 2em;
+      position: relative;
+      cursor: pointer;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    .checkbox-wrapper-10 .tgl + .tgl-btn:after,
+    .checkbox-wrapper-10 .tgl + .tgl-btn:before {
+      position: relative;
+      display: block;
+      content: "";
+      width: 50%;
+      height: 100%;
+    }
+
+    .checkbox-wrapper-10 .tgl + .tgl-btn:after {
+      left: 0;
+    }
+
+    .checkbox-wrapper-10 .tgl + .tgl-btn:before {
+      display: none;
+    }
+
+    .checkbox-wrapper-10 .tgl:checked + .tgl-btn:after {
+      left: 50%;
+    }
+
+    .checkbox-wrapper-10 .tgl-flip + .tgl-btn {
+      padding: 2px;
+      transition: all 0.2s ease;
+      font-family: sans-serif;
+      perspective: 100px;
+    }
+
+    .checkbox-wrapper-10 .tgl-flip + .tgl-btn:after,
+    .checkbox-wrapper-10 .tgl-flip + .tgl-btn:before {
+      display: inline-block;
+      transition: all 0.4s ease;
+      width: 100%;
+      text-align: center;
+      position: absolute;
+      line-height: 2em;
+      font-weight: bold;
+      color: #fff;
+      position: absolute;
+      top: 0;
+      left: 0;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 4px;
+    }
+
+    .checkbox-wrapper-10 .tgl-flip + .tgl-btn:after {
+      content: attr(data-tg-on);
+      background: #02C66F;
+      transform: rotateY(-180deg);
+    }
+
+    .checkbox-wrapper-10 .tgl-flip + .tgl-btn:before {
+      background: #FF3A19;
+      content: attr(data-tg-off);
+    }
+
+    .checkbox-wrapper-10 .tgl-flip + .tgl-btn:active:before {
+      transform: rotateY(-20deg);
+    }
+
+    .checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:before {
+      transform: rotateY(180deg);
+    }
+
+    .checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:after {
+      transform: rotateY(0);
+      left: 0;
+      background: #7FC6A6;
+    }
+
+    .checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:active:after {
+      transform: rotateY(20deg);
+    }
   </style>
 </head>
 <body>
@@ -121,7 +318,30 @@
       <p class="welcome">{{ study_plan.title }}</p>
       <div class="user-profile-badge">
         <span class="badge-icon">🎯</span>
-        <span class="badge-text">{{ user.learningstyle }} Learner</span>
+        <span class="badge-text">{{ user.name }}</span>
+      </div>
+    </div>
+
+    <!-- Progress Tracker -->
+    <div class="progress-section">
+      <div class="progress-header">
+        <h3>📊 Your Progress</h3>
+        <div class="progress-stats">
+          <span id="progressStatsText">{{ progress.completed_resources }}/{{ progress.total_resources }} resources completed</span>
+          <span class="progress-percentage" id="progressPercentage">{{ progress.completion_percentage|floatformat:0 }}%</span>
+        </div>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar" style="width: {{ progress.completion_percentage }}%"></div>
+      </div>
+      <div class="progress-details">
+        <span>⏱️ Last activity: {{ progress.last_activity|date:"M d, Y - g:i A" }}</span>
+        {% if progress.started_at %}
+          <span>🚀 Started: {{ progress.started_at|date:"M d, Y" }}</span>
+        {% endif %}
+        {% if progress.completed_at %}
+          <span>🎉 Completed: {{ progress.completed_at|date:"M d, Y" }}</span>
+        {% endif %}
       </div>
     </div>
 
@@ -129,7 +349,7 @@
     <div class="resources-container">
       <div class="resources-header">
         <h2>🤖 AI-Curated Learning Resources</h2>
-        <p>Handpicked resources matching your {{ user.learningstyle }} learning style</p>
+        <p>Handpicked resources matching your learning goals</p>
       </div>
 
       <div class="resources-grid">
@@ -182,16 +402,18 @@
             </div>
           {% endif %}
 
-          <!-- Completion Checkbox -->
-          {% if resource.id %}
-          <div class="resource-completion" onclick="toggleCompletion({{ study_plan.id }}, {{ resource.id }}, this)">
-            <input type="checkbox" 
+          <!-- Completion Toggle Switch -->
+          <div class="checkbox-wrapper-10">
+            <input class="tgl tgl-flip" 
                    id="checkbox-{{ resource.id }}" 
+                   type="checkbox"
                    {% if resource.is_completed %}checked{% endif %}
-                   onclick="event.stopPropagation(); toggleCompletion({{ study_plan.id }}, {{ resource.id }}, this.parentElement)">
-            <label for="checkbox-{{ resource.id }}">Mark as completed</label>
+                   onclick="toggleCompletion({{ study_plan.id }}, {{ resource.id }}, this)">
+            <label class="tgl-btn" 
+                   data-tg-off="TODO" 
+                   data-tg-on="DONE" 
+                   for="checkbox-{{ resource.id }}"></label>
           </div>
-          {% endif %}
         </div>
         {% empty %}
         <div class="no-resources">
@@ -229,15 +451,30 @@
     }, 3000);
 
     // Toggle resource completion
-    function toggleCompletion(planId, resourceId, element) {
-      const checkbox = element.querySelector('input[type="checkbox"]');
+    function toggleCompletion(planId, resourceId, checkbox) {
       const card = document.getElementById('resource-' + resourceId);
+      const isChecked = checkbox.checked;
       
-      // Toggle checkbox
-      checkbox.checked = !checkbox.checked;
+      // INSTANT UI UPDATE - Update immediately for better UX
+      const header = card.querySelector('.resource-card-header');
+      if (isChecked) {
+        card.classList.add('completed');
+        // Add completion badge if not exists
+        if (!header.querySelector('.completion-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'completion-badge';
+          badge.textContent = '✓ Completed';
+          header.appendChild(badge);
+        }
+      } else {
+        card.classList.remove('completed');
+        // Remove completion badge
+        const badge = card.querySelector('.completion-badge');
+        if (badge) badge.remove();
+      }
       
       // Send AJAX request
-      fetch(`/studyplan/${planId}/resources/${resourceId}/toggle/`, {
+      fetch(`/study-plans/${planId}/resources/${resourceId}/toggle/`, {
         method: 'POST',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
@@ -248,44 +485,55 @@
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Update UI
-          if (data.is_completed) {
+          // Update progress bar with server data
+          updateProgressBar(data.completion_percentage, data.completed_resources, data.total_resources);
+        } else {
+          // Revert UI changes if server says it failed
+          checkbox.checked = !checkbox.checked;
+          if (isChecked) {
+            card.classList.remove('completed');
+            const badge = card.querySelector('.completion-badge');
+            if (badge) badge.remove();
+          } else {
             card.classList.add('completed');
-            // Add completion badge if not exists
-            const header = card.querySelector('.resource-card-header');
             if (!header.querySelector('.completion-badge')) {
               const badge = document.createElement('span');
               badge.className = 'completion-badge';
               badge.textContent = '✓ Completed';
               header.appendChild(badge);
             }
-          } else {
-            card.classList.remove('completed');
-            // Remove completion badge
-            const badge = card.querySelector('.completion-badge');
-            if (badge) badge.remove();
           }
-          
-          // Update progress bar
-          updateProgressBar(data.completion_percentage, data.completed_resources, data.total_resources);
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        // Revert checkbox on error
+        // Revert all changes on error
         checkbox.checked = !checkbox.checked;
+        if (isChecked) {
+          card.classList.remove('completed');
+          const badge = card.querySelector('.completion-badge');
+          if (badge) badge.remove();
+        } else {
+          card.classList.add('completed');
+          if (!header.querySelector('.completion-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'completion-badge';
+            badge.textContent = '✓ Completed';
+            header.appendChild(badge);
+          }
+        }
       });
     }
 
     // Update progress bar
     function updateProgressBar(percentage, completed, total) {
-      const progressBar = document.querySelector('.progress-bar');
-      const progressPercentage = document.querySelector('.progress-percentage');
-      const progressStats = document.querySelector('.progress-stats span:first-child');
+      const progressBar = document.getElementById('progressBar');
+      const progressPercentage = document.getElementById('progressPercentage');
+      const progressStats = document.getElementById('progressStatsText');
       
       if (progressBar) progressBar.style.width = percentage + '%';
       if (progressPercentage) progressPercentage.textContent = Math.round(percentage) + '%';
-      if (progressStats) progressStats.textContent = `✅ ${completed}/${total} resources completed`;
+      if (progressStats) progressStats.textContent = `${completed}/${total} resources completed`;
     }
 
     // Get CSRF token

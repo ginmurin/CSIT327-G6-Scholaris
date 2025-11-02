@@ -8,7 +8,6 @@ class User(models.Model):
     email = models.EmailField(unique=True, db_index=True)
     password = models.CharField(max_length=128)
     role = models.CharField(max_length=50, blank=True, default="student")
-    learningstyle = models.CharField(max_length=50, default="Visual")
     goals = models.TextField(default="To be determined")
     profile_picture = models.CharField(max_length=255, blank=True, null=True)
     timezone = models.CharField(max_length=50, default="UTC")

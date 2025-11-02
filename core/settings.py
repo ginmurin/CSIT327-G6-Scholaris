@@ -7,9 +7,12 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security Settings - Use environment variables in production
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-e3^=st%k(@w=y+nqtj2@wji41-b&3ajx8rro(3(jp=s7=1c!8y')
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# Security Settings - Use environment variables
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set!")
+
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Static files configuration
 STATIC_URL = '/static/'
@@ -38,7 +41,9 @@ INSTALLED_APPS = [
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyAjPll1Cev_wB9i8U0vvxLvtUeug6y6U-U')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set!")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

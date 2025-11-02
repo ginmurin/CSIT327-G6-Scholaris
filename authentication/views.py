@@ -98,7 +98,6 @@ def profile_view(request):
             
             # Save all form fields
             user.name = form.cleaned_data['name']
-            user.learningstyle = form.cleaned_data['learningstyle']
             user.goals = form.cleaned_data['goals']
             user.timezone = form.cleaned_data.get('timezone', 'UTC')
             user.language = form.cleaned_data.get('language', 'en')

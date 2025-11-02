@@ -71,15 +71,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- Learning Style Field -->
-                    <div class="form-group">
-                        <label for="{{ form.learningstyle.id_for_label }}">{{ form.learningstyle.label }}</label>
-                        {{ form.learningstyle }}
-                        {% if form.learningstyle.errors %}
-                            <span class="error-message">{{ form.learningstyle.errors.0 }}</span>
-                        {% endif %}
-                    </div>
-
                     <!-- Goals Field -->
                     <div class="form-group">
                         <label for="{{ form.goals.id_for_label }}">{{ form.goals.label }}</label>
@@ -141,10 +132,6 @@
                 <div class="info-item">
                     <span class="info-label">Last Login:</span>
                     <span class="info-value">{{ user.last_login|date:"F d, Y g:i A"|default:"Never" }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Learning Style:</span>
-                    <span class="info-value">{{ user.learningstyle }}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Time Zone:</span>
