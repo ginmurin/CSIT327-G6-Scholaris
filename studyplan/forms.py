@@ -5,7 +5,7 @@ from datetime import date
 class StudyPlanForm(forms.ModelForm):
     class Meta:
         model = StudyPlan
-        fields = ['title', 'description', 'learning_objective', 'start_date', 'end_date', 'preferred_resources', 'estimated_hours_per_week']
+        fields = ['title', 'description', 'learning_objective', 'topic_category', 'start_date', 'end_date', 'preferred_resources', 'estimated_hours_per_week']
         widgets = {
             'title': forms.TextInput(attrs={
                 'placeholder': 'e.g., Python Programming Fundamentals',
@@ -20,19 +20,21 @@ class StudyPlanForm(forms.ModelForm):
                 'placeholder': 'e.g., Master Python basics and build a web application',
                 'class': 'form-input'
             }),
+            'topic_category': forms.Select(attrs={
+                'class': 'form-input form-select'
+            }),
             'start_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-input',
-                'min': date.today().isoformat()  # Prevent selecting past dates
+                'min': date.today().isoformat()
             }),
             'end_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-input',
-                'min': date.today().isoformat()  # Prevent selecting past dates
+                'min': date.today().isoformat()
             }),
-            'preferred_resources': forms.TextInput(attrs={
-                'placeholder': 'e.g., Books, Videos, Online Courses, Tutorials',
-                'class': 'form-input'
+            'preferred_resources': forms.Select(attrs={
+                'class': 'form-input form-select'
             }),
             'estimated_hours_per_week': forms.NumberInput(attrs={
                 'placeholder': 'Hours per week',
@@ -45,6 +47,7 @@ class StudyPlanForm(forms.ModelForm):
             'title': 'Study Plan Title',
             'description': 'Description',
             'learning_objective': 'Learning Objective',
+            'topic_category': 'Topic Category',
             'start_date': 'Start Date',
             'end_date': 'End Date',
             'preferred_resources': 'Preferred Resources',

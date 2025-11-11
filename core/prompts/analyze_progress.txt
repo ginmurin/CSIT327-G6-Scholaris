@@ -1,0 +1,19 @@
+Analyze this student's quiz performance:
+
+Quiz Results: {quiz_results}
+
+Provide analysis in JSON format:
+{{
+    "overall_performance": "Good/Needs Improvement/Excellent",
+    "strengths": ["strength1", "strength2"],
+    "weaknesses": ["weakness1", "weakness2"],
+    "recommendations": [
+        "specific recommendation 1",
+        "specific recommendation 2",
+        "specific recommendation 3"
+    ],
+    "focus_areas": ["area1", "area2"],
+    "encouragement": "motivational message"
+}}
+
+Provide actionable recommendations with diverse learning approaches.

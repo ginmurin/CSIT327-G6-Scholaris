@@ -1,0 +1,24 @@
+Create a {difficulty} difficulty quiz about: {topic}
+{learning_objective_context}
+
+Generate exactly {num_questions} multiple choice questions.
+
+Return the quiz in this JSON format:
+{{
+    "title": "{topic} Quiz",
+    "difficulty": "{difficulty}",
+    "questions": [
+        {{
+            "question": "Question text here?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correct_answer": 0,
+            "explanation": "Why this answer is correct and what students should learn"
+        }}
+    ]
+}}
+
+Important:
+- correct_answer should be the index (0-3) of the correct option
+- Make questions educational and relevant to {topic}
+- Provide clear explanations for learning
+- Difficulty should match {difficulty} level

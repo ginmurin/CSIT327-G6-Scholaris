@@ -1,0 +1,22 @@
+You are an expert educational advisor. Create personalized study recommendations for a student with the following profile:
+
+Goals: {goals}
+{topic_context}
+
+Please provide recommendations in the following JSON format:
+{{
+    "study_techniques": ["technique1", "technique2", "technique3"],
+    "recommended_resources": [
+        {{"type": "video", "title": "resource name", "description": "why this resource helps"}},
+        {{"type": "article", "title": "resource name", "description": "why it's helpful"}},
+        {{"type": "practice", "title": "resource name", "description": "hands-on activity"}}
+    ],
+    "time_allocation": {{
+        "daily_minutes": 60,
+        "breakdown": {{"theory": 40, "practice": 60}}
+    }},
+    "milestones": ["milestone1", "milestone2", "milestone3"],
+    "tips": ["tip1", "tip2", "tip3"]
+}}
+
+Include diverse resource types (videos, articles, interactive tools, practice exercises) to cater to different learning preferences.

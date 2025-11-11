@@ -1,4 +1,5 @@
 {% load static %}
+{% load app_filters %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -33,10 +34,10 @@
       </div>
       <div class="header-actions">
         <a href="{% url 'profile' %}" class="btn btn-profile">
-          👤 Profile
+          Profile
         </a>
         <a href="{% url 'create_study_plan' %}" class="btn btn-primary">
-          ✨ Create Study Plan
+          Create Study Plan
         </a>
         <a href="{% url 'logout' %}" class="btn btn-secondary">
           Logout
@@ -52,19 +53,14 @@
         <div class="stat-label">Study Plans</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">🎯</span>
-        <div class="stat-value">0</div>
-        <div class="stat-label">Goals Achieved</div>
+        <span class="stat-icon">🔥</span>
+        <div class="stat-value">{{ user.login_streak }}</div>
+        <div class="stat-label">Day Streak</div>
       </div>
       <div class="stat-card">
         <span class="stat-icon">⏱️</span>
-        <div class="stat-value">0h</div>
-        <div class="stat-label">Study Time</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-icon">🔥</span>
-        <div class="stat-value">0</div>
-        <div class="stat-label">Day Streak</div>
+        <div class="stat-value">{{ user.get_app_time_formatted }}</div>
+        <div class="stat-label">Time on App</div>
       </div>
     </div>
 
@@ -72,7 +68,7 @@
     {% if study_plans %}
     <div class="study-plans-section">
       <div class="section-header">
-        <h2>📚 My Active Study Plans</h2>
+        <h2>My Study Plans</h2>
         <a href="{% url 'list_study_plans' %}" class="view-all-link">View All →</a>
       </div>
       
@@ -117,14 +113,14 @@
     <!-- AI-Powered Recommendations -->
     <div class="ai-recommendations">
       <div class="ai-header">
-        <h2>🤖 Your Personalized Learning Plan</h2>
+        <h2>Your Personalized Learning Plan</h2>
         <p>AI-powered recommendations tailored to your goals</p>
       </div>
 
       <div class="recommendations-grid">
         <!-- Study Techniques -->
         <div class="recommendation-card">
-          <h3>📝 Recommended Study Techniques</h3>
+          <h3>Recommended Study Techniques</h3>
           <ul class="technique-list">
             {% for technique in recommendations.study_techniques %}
               <li>{{ technique }}</li>
@@ -134,7 +130,7 @@
 
         <!-- Resources - PROMINENT SECTION -->
         <div class="recommendation-card card-resources-featured">
-          <h3>📚 Curated Learning Resources</h3>
+          <h3>Curated Learning Resources</h3>
           <p class="resources-subtitle">Click to start learning instantly!</p>
           <div class="resources-list-featured">
             {% for resource in recommendations.recommended_resources %}
@@ -142,10 +138,10 @@
                 <div class="resource-card-content">
                   <div class="resource-card-header-inline">
                     <span class="resource-badge-large badge-{{ resource.type }}">
-                      {% if resource.type == "video" %}📺 Video
-                      {% elif resource.type == "article" %}📄 Article
-                      {% elif resource.type == "practice" %}🎯 Practice
-                      {% else %}📖 {{ resource.type|title }}
+                      {% if resource.type == "video" %}Video
+                      {% elif resource.type == "article" %}Article
+                      {% elif resource.type == "practice" %}Practice
+                      {% else %}{{ resource.type|title }}
                       {% endif %}
                     </span>
                     {% if resource.platform %}
@@ -166,7 +162,7 @@
 
         <!-- Time Allocation -->
         <div class="recommendation-card">
-          <h3>⏰ Suggested Study Schedule</h3>
+          <h3>Suggested Study Schedule</h3>
           <div class="time-allocation">
             <div class="time-main">
               <span class="time-value">{{ recommendations.time_allocation.daily_minutes }}</span>

@@ -215,12 +215,13 @@ def get_resources(request, plan_id):
                 'status': study_plan.status
             }
             
-            # Use SMART resource system with FULL CONTEXT
+            # Use SMART resource system with FULL CONTEXT and topic category
             resources_data = LearningAIService.get_smart_resources(
                 topic=study_plan.title,
                 resource_type="all",
                 limit=8,
-                context=context
+                context=context,
+                topic_category=study_plan.topic_category  # Pass the category for flexible AI
             )
             
             print(f"Received {len(resources_data)} resources from AI service")

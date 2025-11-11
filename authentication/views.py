@@ -45,7 +45,12 @@ class LoginView(View):
             
             # Update last_login timestamp
             user.last_login = timezone.now()
-            user.save(update_fields=['last_login'])
+            
+            # Update login streak and session start
+            user.update_login_streak()
+            user.start_session()
+            
+            user.save()
             
             # Set session variables
             request.session["app_user_id"] = user.id
@@ -57,6 +62,14 @@ class LoginView(View):
     
 @never_cache
 def logout_view(request):
+    # End session and track app time
+    user_id = request.session.get("app_user_id")
+    if user_id:
+        user = AppUser.objects.filter(id=user_id).first()
+        if user:
+            user.end_session()
+            user.save()
+    
     request.session.flush()
     return redirect("login")
 

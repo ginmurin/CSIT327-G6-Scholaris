@@ -1,37 +1,57 @@
 from google import genai
 from django.conf import settings
+from django.core.cache import cache
+from .prompt_loader import load_prompt
 import json
-import os
 import time
+import logging
 
-# Configure the new Google GenAI client
+logger = logging.getLogger(__name__)
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+# Rate limiting configuration
+MAX_REQUESTS_PER_MINUTE = 10
+REQUEST_QUEUE_KEY = 'gemini_request_queue'
+RATE_LIMIT_WINDOW = 60
+
+
+def _get_request_queue():
+    """Get and clean request queue from cache."""
+    queue = cache.get(REQUEST_QUEUE_KEY, [])
+    now = time.time()
+    return [ts for ts in queue if now - ts < RATE_LIMIT_WINDOW]
+
+
+def _wait_for_rate_limit():
+    """Wait if we're at rate limit capacity."""
+    queue = _get_request_queue()
+    
+    if len(queue) < MAX_REQUESTS_PER_MINUTE:
+        queue.append(time.time())
+        cache.set(REQUEST_QUEUE_KEY, queue, timeout=RATE_LIMIT_WINDOW + 10)
+        return 0
+    
+    oldest_request = queue[0]
+    wait_time = RATE_LIMIT_WINDOW - (time.time() - oldest_request) + 0.5
+    
+    if wait_time > 0:
+        print(f"⏳ Rate limit: Waiting {wait_time:.1f}s...")
+        time.sleep(wait_time)
+    
+    queue = _get_request_queue()
+    queue.append(time.time())
+    cache.set(REQUEST_QUEUE_KEY, queue, timeout=RATE_LIMIT_WINDOW + 10)
+    return wait_time
 
 
 def _call_ai_with_retry(model, prompt, max_retries=3, initial_wait=2):
-    """
-    Call Gemini AI with exponential backoff retry logic.
-    
-    Args:
-        model: Model name to use
-        prompt: Prompt to send
-        max_retries: Maximum number of retry attempts (default: 3)
-        initial_wait: Initial wait time in seconds (default: 2)
-    
-    Returns:
-        Response text from the AI
-    
-    Raises:
-        Exception: If all retries fail
-    """
+    """Call Gemini AI with retry logic and rate limiting."""
     for attempt in range(max_retries):
         try:
+            _wait_for_rate_limit()
             print(f"🤖 AI request attempt {attempt + 1}/{max_retries}")
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt
-            )
-            print(f"✅ AI request successful on attempt {attempt + 1}")
+            response = client.models.generate_content(model=model, contents=prompt)
+            print(f"✅ AI request successful")
             return response.text
         except Exception as e:
             error_str = str(e)
@@ -248,9 +268,55 @@ class LearningAIService:
             }
     
     @staticmethod
-    def suggest_resources(topic, resource_type="all", context=None):
+    def suggest_resources(topic, resource_type="all", context=None, topic_category=None):
+        # ===== CACHING LAYER =====
+        # Generate cache key to avoid redundant AI calls for same topic
+        cache_key = f"ai_resources:{topic}:{resource_type}:{topic_category or 'none'}"
+        cached_resources = cache.get(cache_key)
+        
+        if cached_resources:
+            print(f"✅ Using cached resources for topic: {topic}")
+            return cached_resources
+        
+        print(f"🔄 Fetching fresh resources for topic: {topic} (not in cache)")
+        
         # Build enhanced prompt with full context
         context_info = ""
+        category_hint = ""
+        
+        if topic_category:
+            # Map category to human-readable name for better AI prompts
+            category_names = {
+                'programming': 'Programming & Software Development',
+                'web': 'Web Development',
+                'mobile': 'Mobile Development',
+                'data_science': 'Data Science & AI',
+                'devops': 'DevOps & Cloud Computing',
+                'business': 'Business Management',
+                'finance': 'Finance & Accounting',
+                'marketing': 'Marketing & Advertising',
+                'leadership': 'Leadership & Management',
+                'communication': 'Communication & Public Speaking',
+                'language_spanish': 'Spanish Language Learning',
+                'language_french': 'French Language Learning',
+                'language_german': 'German Language Learning',
+                'language_other': 'Other Languages',
+                'biology': 'Biology',
+                'chemistry': 'Chemistry',
+                'physics': 'Physics',
+                'mathematics': 'Mathematics',
+                'art': 'Art & Design',
+                'music': 'Music',
+                'writing': 'Writing & Literature',
+                'photography': 'Photography',
+                'fitness': 'Fitness & Nutrition',
+                'psychology': 'Psychology',
+                'mindfulness': 'Mindfulness & Meditation',
+                'other': 'General Learning',
+            }
+            category_name = category_names.get(topic_category, topic_category)
+            category_hint = f"Topic Category: {category_name}\n"
+        
         if context:
             context_info = f"""
         
@@ -272,7 +338,7 @@ class LearningAIService:
         You are a learning resource curator. Find 7 REAL, SPECIFIC learning resources with DIRECT URLs for:
         
         Topic: {topic}
-        Resource Type: {resource_type}
+        {category_hint}Resource Type: {resource_type}
         {context_info}
         
         CRITICAL REQUIREMENTS:
@@ -309,6 +375,14 @@ class LearningAIService:
         - Articles and documentation for in-depth reading
         - Courses for structured learning paths
         
+        IMPORTANT: You must provide resources for ANY topic, not just programming. Examples:
+        - For "Spanish Language": Duolingo, Babbel, FluentU lessons
+        - For "Biology": Khan Academy biology, Amoeba Sisters videos, Campbell Biology resources
+        - For "Music": Music Theory tutorials, Udemy music courses, YouTube piano lessons
+        - For "Psychology": APA resources, Psychology Today, Coursera psychology courses
+        - For "Fitness": Fitness.gov, Nike Training Club, Peloton classes
+        - For "Art": Skillshare, Domestika, YouTube art tutorials
+        
         Return ONLY the JSON array, no markdown, no extra text.
         """
         
@@ -342,207 +416,90 @@ class LearningAIService:
                     valid_resources.append(r)
             
             if valid_resources:
+                # Cache the valid resources for 24 hours
+                cache.set(cache_key, valid_resources, timeout=86400)
+                print(f"✅ Cached {len(valid_resources)} resources for topic: {topic}")
                 return valid_resources
             else:
                 # If AI gave us search pages, use curated fallback
                 print(f"AI returned search pages for topic: {topic}, using fallback")
-                return LearningAIService._get_curated_fallback_resources(topic)
+                fallback = LearningAIService._get_curated_fallback_resources(topic)
+                # Cache fallback too
+                cache.set(cache_key, fallback, timeout=86400)
+                return fallback
                 
         except Exception as e:
             # Use curated fallback resources
             print(f"Error generating AI resources for {topic}: {str(e)}")
             print(f"Falling back to curated resources for topic: {topic}")
-            return LearningAIService._get_curated_fallback_resources(topic)
+            fallback = LearningAIService._get_curated_fallback_resources(topic)
+            # Cache fallback too
+            cache.set(cache_key, fallback, timeout=86400)
+            return fallback
     
     @staticmethod
     def _get_curated_fallback_resources(topic):
-        # Extensive curated resource database with REAL URLs
-        curated_resources = {
-            "python": [
-                {"title": "Python Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=rfscVS0vtbw", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "4 hours", "is_free": True, "description": "Complete Python tutorial for beginners"},
-                {"title": "Python Official Tutorial", "type": "article", "url": "https://docs.python.org/3/tutorial/", "platform": "Python.org", "difficulty": "beginner", "estimated_time": "3 hours", "is_free": True, "description": "Official Python documentation and tutorial"},
-                {"title": "Real Python Tutorials", "type": "article", "url": "https://realpython.com/", "platform": "Real Python", "difficulty": "intermediate", "estimated_time": "Varies", "is_free": True, "description": "In-depth Python tutorials and articles"},
-                {"title": "Python for Everybody - Coursera", "type": "course", "url": "https://www.coursera.org/specializations/python", "platform": "Coursera", "difficulty": "beginner", "estimated_time": "8 months", "is_free": True, "description": "University of Michigan's Python course"},
-                {"title": "Automate the Boring Stuff", "type": "interactive", "url": "https://automatetheboringstuff.com/", "platform": "Online Book", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Practical Python programming"},
-                {"title": "LeetCode Python Practice", "type": "practice", "url": "https://leetcode.com/problemset/", "platform": "LeetCode", "difficulty": "intermediate", "estimated_time": "Ongoing", "is_free": True, "description": "Coding challenges in Python"},
-                {"title": "Python Crash Course", "type": "video", "url": "https://www.youtube.com/watch?v=_uQrJ0TkZlc", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "6 hours", "is_free": True, "description": "Programming with Mosh Python tutorial"},
-            ],
-            "java": [
-                {"title": "Java Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=xk4_1vDrzzo", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "4 hours", "is_free": True, "description": "Complete Java tutorial for beginners"},
-                {"title": "Java Programming - MOOC.fi", "type": "interactive", "url": "https://java-programming.mooc.fi/", "platform": "University of Helsinki", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Free comprehensive Java course with exercises"},
-                {"title": "Java Tutorial - W3Schools", "type": "article", "url": "https://www.w3schools.com/java/", "platform": "W3Schools", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Interactive Java tutorial with examples"},
-                {"title": "Java Documentation - Oracle", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/", "platform": "Oracle", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Official Java tutorials from Oracle"},
-                {"title": "Java Concurrency Tutorial", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/essential/concurrency/", "platform": "Oracle", "difficulty": "intermediate", "estimated_time": "3 hours", "is_free": True, "description": "Official Java threading and concurrency guide"},
-                {"title": "Java Multithreading - Baeldung", "type": "article", "url": "https://www.baeldung.com/java-concurrency", "platform": "Baeldung", "difficulty": "intermediate", "estimated_time": "2 hours", "is_free": True, "description": "Comprehensive Java threading tutorials"},
-                {"title": "Codecademy Learn Java", "type": "interactive", "url": "https://www.codecademy.com/learn/learn-java", "platform": "Codecademy", "difficulty": "beginner", "estimated_time": "25 hours", "is_free": True, "description": "Interactive Java programming course"},
-                {"title": "Java for Complete Beginners - Udemy", "type": "video", "url": "https://www.youtube.com/watch?v=GoXwIVyNvX0", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "16 hours", "is_free": True, "description": "Full Java programming course"},
-                {"title": "JetBrains Academy Java", "type": "interactive", "url": "https://hyperskill.org/tracks/17", "platform": "JetBrains", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Project-based Java learning"},
-            ],
-            "javascript": [
-                {"title": "JavaScript Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=PkZNo7MFNFg", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "3 hours", "is_free": True, "description": "Complete JavaScript tutorial"},
-                {"title": "MDN JavaScript Guide", "type": "article", "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide", "platform": "MDN", "difficulty": "all", "estimated_time": "10 hours", "is_free": True, "description": "Comprehensive JavaScript documentation"},
-                {"title": "JavaScript30", "type": "practice", "url": "https://javascript30.com/", "platform": "JavaScript30", "difficulty": "intermediate", "estimated_time": "30 days", "is_free": True, "description": "30 projects in 30 days"},
-                {"title": "Eloquent JavaScript", "type": "article", "url": "https://eloquentjavascript.net/", "platform": "Online Book", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Free interactive JavaScript book"},
-                {"title": "freeCodeCamp JavaScript", "type": "interactive", "url": "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/", "platform": "freeCodeCamp", "difficulty": "beginner", "estimated_time": "300 hours", "is_free": True, "description": "Interactive JavaScript curriculum"},
-                {"title": "JavaScript Info Tutorial", "type": "article", "url": "https://javascript.info/", "platform": "JavaScript.info", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Modern JavaScript tutorial"},
-            ],
-            "web development": [
-                {"title": "Full Stack Web Development - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=nu_pCVPKzTk", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "4 hours", "is_free": True, "description": "HTML, CSS, JavaScript tutorial"},
-                {"title": "freeCodeCamp Curriculum", "type": "interactive", "url": "https://www.freecodecamp.org/learn/", "platform": "freeCodeCamp", "difficulty": "beginner", "estimated_time": "1800 hours", "is_free": True, "description": "Complete web development curriculum"},
-                {"title": "The Odin Project", "type": "course", "url": "https://www.theodinproject.com/", "platform": "Odin Project", "difficulty": "beginner", "estimated_time": "1000 hours", "is_free": True, "description": "Free full-stack curriculum"},
-                {"title": "W3Schools Tutorials", "type": "interactive", "url": "https://www.w3schools.com/", "platform": "W3Schools", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Interactive web tutorials"},
-                {"title": "MDN Web Docs", "type": "article", "url": "https://developer.mozilla.org/en-US/docs/Learn", "platform": "MDN", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Web development learning pathway"},
-                {"title": "CSS-Tricks", "type": "article", "url": "https://css-tricks.com/", "platform": "CSS-Tricks", "difficulty": "intermediate", "estimated_time": "Ongoing", "is_free": True, "description": "CSS and web design articles"},
-            ],
-            "react": [
-                {"title": "React Official Tutorial", "type": "article", "url": "https://react.dev/learn", "platform": "React.dev", "difficulty": "beginner", "estimated_time": "3 hours", "is_free": True, "description": "Official React documentation"},
-                {"title": "React Course - Scrimba", "type": "interactive", "url": "https://scrimba.com/learn/learnreact", "platform": "Scrimba", "difficulty": "beginner", "estimated_time": "12 hours", "is_free": True, "description": "Interactive React course"},
-                {"title": "Full React Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=bMknfKXIFA8", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "10 hours", "is_free": True, "description": "Comprehensive React tutorial"},
-                {"title": "React for Beginners", "type": "video", "url": "https://www.youtube.com/watch?v=Ke90Tje7VS0", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "2 hours", "is_free": True, "description": "Programming with Mosh React course"},
-                {"title": "freeCodeCamp React", "type": "interactive", "url": "https://www.freecodecamp.org/learn/front-end-development-libraries/", "platform": "freeCodeCamp", "difficulty": "intermediate", "estimated_time": "300 hours", "is_free": True, "description": "React certification course"},
-            ],
-            "data science": [
-                {"title": "Data Science Full Course", "type": "video", "url": "https://www.youtube.com/watch?v=ua-CiDNNj30", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "12 hours", "is_free": True, "description": "Complete data science tutorial"},
-                {"title": "Kaggle Learn", "type": "interactive", "url": "https://www.kaggle.com/learn", "platform": "Kaggle", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Interactive data science courses"},
-                {"title": "Python for Data Science", "type": "course", "url": "https://www.coursera.org/learn/python-for-applied-data-science-ai", "platform": "Coursera", "difficulty": "beginner", "estimated_time": "5 weeks", "is_free": True, "description": "IBM's Python for Data Science"},
-                {"title": "Data Analysis with Pandas", "type": "video", "url": "https://www.youtube.com/watch?v=vmEHCJofslg", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "1 hour", "is_free": True, "description": "Pandas tutorial for beginners"},
-                {"title": "Google Data Analytics", "type": "course", "url": "https://www.coursera.org/professional-certificates/google-data-analytics", "platform": "Coursera", "difficulty": "beginner", "estimated_time": "6 months", "is_free": False, "description": "Google's professional certificate"},
-            ],
-            "machine learning": [
-                {"title": "Machine Learning Course - Andrew Ng", "type": "course", "url": "https://www.coursera.org/learn/machine-learning", "platform": "Coursera", "difficulty": "intermediate", "estimated_time": "11 weeks", "is_free": True, "description": "Stanford's famous ML course"},
-                {"title": "ML Crash Course - Google", "type": "interactive", "url": "https://developers.google.com/machine-learning/crash-course", "platform": "Google", "difficulty": "beginner", "estimated_time": "15 hours", "is_free": True, "description": "Google's ML crash course"},
-                {"title": "Fast.ai Practical Deep Learning", "type": "course", "url": "https://course.fast.ai/", "platform": "Fast.ai", "difficulty": "intermediate", "estimated_time": "7 weeks", "is_free": True, "description": "Practical deep learning course"},
-                {"title": "Machine Learning with Python", "type": "video", "url": "https://www.youtube.com/watch?v=7eh4d6sabA0", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "2 hours", "is_free": True, "description": "freeCodeCamp ML tutorial"},
-                {"title": "Elements of AI", "type": "course", "url": "https://www.elementsofai.com/", "platform": "University of Helsinki", "difficulty": "beginner", "estimated_time": "30 hours", "is_free": True, "description": "Introduction to AI concepts"},
-            ],
-            "cooking": [
-                {"title": "Basics with Babish - Cooking Techniques", "type": "video", "url": "https://www.youtube.com/watch?v=1WT35Jy5Ixw&list=PLopY4n17t8RD-xx0UdVqemiSa0sRfyX19", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Essential cooking techniques from Babish"},
-                {"title": "Gordon Ramsay's Ultimate Cookery Course", "type": "video", "url": "https://www.youtube.com/watch?v=STS8SjQ93I8&list=PLjg7WfZf-CAHWqaEPNGqKN85TyR5xG2rz", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "20 episodes", "is_free": True, "description": "Cooking fundamentals from Gordon Ramsay"},
-                {"title": "Budget Bytes - Recipes & Tutorials", "type": "article", "url": "https://www.budgetbytes.com/", "platform": "Budget Bytes", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Budget-friendly recipes with step-by-step photos"},
-                {"title": "Serious Eats - Cooking Techniques", "type": "article", "url": "https://www.seriouseats.com/", "platform": "Serious Eats", "difficulty": "intermediate", "estimated_time": "Ongoing", "is_free": True, "description": "Science-based cooking guides and recipes"},
-                {"title": "America's Test Kitchen", "type": "video", "url": "https://www.youtube.com/c/AmericasTestKitchen", "platform": "YouTube", "difficulty": "intermediate", "estimated_time": "Varies", "is_free": True, "description": "Professional cooking techniques and recipes"},
-                {"title": "Salt Fat Acid Heat Basics", "type": "video", "url": "https://www.youtube.com/watch?v=gqhg6dollars", "platform": "Netflix/YouTube", "difficulty": "beginner", "estimated_time": "4 hours", "is_free": True, "description": "Fundamental cooking elements explained"},
-                {"title": "The Food Lab by Kenji López-Alt", "type": "article", "url": "https://www.seriouseats.com/the-food-lab", "platform": "Serious Eats", "difficulty": "intermediate", "estimated_time": "Self-paced", "is_free": True, "description": "Scientific approach to cooking"},
-            ],
-            "guitar": [
-                {"title": "JustinGuitar Beginner Course", "type": "video", "url": "https://www.justinguitar.com/categories/beginner-guitar-course-grade-1", "platform": "JustinGuitar", "difficulty": "beginner", "estimated_time": "3 months", "is_free": True, "description": "Complete beginner guitar course"},
-                {"title": "Marty Music - Guitar Basics", "type": "video", "url": "https://www.youtube.com/c/MartyMusic", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Easy guitar lessons and song tutorials"},
-                {"title": "Guitar Lessons by GuitarZero2Hero", "type": "video", "url": "https://www.youtube.com/c/GuitarZero2Hero", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Step-by-step guitar tutorials"},
-                {"title": "Ultimate Guitar - Tabs & Lessons", "type": "interactive", "url": "https://www.ultimate-guitar.com/", "platform": "Ultimate Guitar", "difficulty": "all", "estimated_time": "Ongoing", "is_free": True, "description": "Guitar tabs and chord charts"},
-                {"title": "Fender Play Free Trial", "type": "course", "url": "https://www.fender.com/play", "platform": "Fender", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": False, "description": "Structured guitar learning path"},
-            ],
-            "drawing": [
-                {"title": "Drawabox - Free Drawing Course", "type": "interactive", "url": "https://drawabox.com/", "platform": "Drawabox", "difficulty": "beginner", "estimated_time": "6 months", "is_free": True, "description": "Comprehensive drawing fundamentals"},
-                {"title": "Proko - Figure Drawing", "type": "video", "url": "https://www.youtube.com/c/ProkoTV", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Professional figure drawing tutorials"},
-                {"title": "Ctrl+Paint - Digital Painting", "type": "video", "url": "https://www.ctrlpaint.com/library", "platform": "Ctrl+Paint", "difficulty": "beginner", "estimated_time": "Self-paced", "is_free": True, "description": "Digital painting fundamentals"},
-                {"title": "Draw a Box - Fundamentals", "type": "article", "url": "https://drawabox.com/lesson/0", "platform": "Drawabox", "difficulty": "beginner", "estimated_time": "50 hours", "is_free": True, "description": "Drawing basics and exercises"},
-                {"title": "Skillshare Drawing Basics", "type": "course", "url": "https://www.skillshare.com/browse/drawing", "platform": "Skillshare", "difficulty": "beginner", "estimated_time": "Varies", "is_free": False, "description": "Structured drawing courses"},
-            ],
-            "fitness": [
-                {"title": "Fitness Blender - Free Workouts", "type": "video", "url": "https://www.fitnessblender.com/", "platform": "Fitness Blender", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Free workout videos for all levels"},
-                {"title": "DAREBEE Workouts", "type": "interactive", "url": "https://darebee.com/", "platform": "DAREBEE", "difficulty": "all", "estimated_time": "Ongoing", "is_free": True, "description": "No-equipment workouts and programs"},
-                {"title": "Chloe Ting Programs", "type": "video", "url": "https://www.chloeting.com/program", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "2-4 weeks", "is_free": True, "description": "Popular workout challenges"},
-                {"title": "Nike Training Club", "type": "interactive", "url": "https://www.nike.com/ntc-app", "platform": "Nike", "difficulty": "all", "estimated_time": "Ongoing", "is_free": True, "description": "Free workout app with programs"},
-                {"title": "Yoga with Adriene", "type": "video", "url": "https://www.youtube.com/c/yogawithadriene", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Beginner-friendly yoga sessions"},
-            ],
-            "language": [
-                {"title": "Duolingo", "type": "interactive", "url": "https://www.duolingo.com/", "platform": "Duolingo", "difficulty": "beginner", "estimated_time": "Ongoing", "is_free": True, "description": "Gamified language learning"},
-                {"title": "Language Transfer", "type": "video", "url": "https://www.languagetransfer.org/", "platform": "Language Transfer", "difficulty": "beginner", "estimated_time": "10-20 hours", "is_free": True, "description": "Audio language courses"},
-                {"title": "Easy Languages YouTube", "type": "video", "url": "https://www.youtube.com/c/learnlanguages", "platform": "YouTube", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Street interviews in target languages"},
-                {"title": "Anki Flashcards", "type": "interactive", "url": "https://apps.ankiweb.net/", "platform": "Anki", "difficulty": "all", "estimated_time": "Ongoing", "is_free": True, "description": "Spaced repetition flashcard system"},
-                {"title": "italki - Language Exchange", "type": "interactive", "url": "https://www.italki.com/", "platform": "italki", "difficulty": "all", "estimated_time": "Ongoing", "is_free": False, "description": "Connect with native speakers"},
-            ],
-        }
+        """
+        Generate fallback resources dynamically based on topic.
+        No hardcoded lists - just return structured search URLs and known platforms.
+        """
+        topic_encoded = topic.replace(' ', '+')
         
-        # Find matching resources
-        topic_lower = topic.lower()
-        matched_resources = []
-        
-        # Try to find exact or partial topic match
-        for key, resources in curated_resources.items():
-            if key in topic_lower or topic_lower in key:
-                matched_resources = resources
-                break
-        
-        # If no match found, provide general learning resources
-        if not matched_resources:
-            matched_resources = [
-                {"title": "freeCodeCamp", "type": "interactive", "url": "https://www.freecodecamp.org/learn", "platform": "freeCodeCamp", "difficulty": "beginner", "estimated_time": "Varies", "is_free": True, "description": "Free coding curriculum"},
-                {"title": "Khan Academy", "type": "interactive", "url": "https://www.khanacademy.org/", "platform": "Khan Academy", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Free courses on many topics"},
-                {"title": "Coursera Free Courses", "type": "course", "url": "https://www.coursera.org/courses?query=free", "platform": "Coursera", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "University-level free courses"},
-                {"title": "MIT OpenCourseWare", "type": "course", "url": "https://ocw.mit.edu/", "platform": "MIT", "difficulty": "advanced", "estimated_time": "Varies", "is_free": True, "description": "Free MIT course materials"},
-                {"title": "YouTube EDU", "type": "video", "url": "https://www.youtube.com/edu", "platform": "YouTube", "difficulty": "all", "estimated_time": "Varies", "is_free": True, "description": "Educational videos"},
-            ]
-        
-        # Return diverse mix of resources
-        return matched_resources[:7]  # Return top 7
-    
-    @staticmethod
-    def get_topic_specific_resources(topic):
-        # Common resource databases by topic
-        resource_db = {
-            "python": [
-                {"title": "Python Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=rfscVS0vtbw", "platform": "YouTube", "difficulty": "beginner"},
-                {"title": "Python Documentation", "type": "article", "url": "https://docs.python.org/3/tutorial/", "platform": "Python.org", "difficulty": "all levels"},
-                {"title": "Real Python Tutorials", "type": "article", "url": "https://realpython.com/", "platform": "Real Python", "difficulty": "intermediate"},
-                {"title": "LeetCode Python", "type": "practice", "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=array", "platform": "LeetCode", "difficulty": "intermediate"},
-            ],
-            "java": [
-                {"title": "Java Full Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=xk4_1vDrzzo", "platform": "YouTube", "difficulty": "beginner"},
-                {"title": "Java Programming - MOOC.fi", "type": "interactive", "url": "https://java-programming.mooc.fi/", "platform": "University of Helsinki", "difficulty": "beginner"},
-                {"title": "Java Tutorial - W3Schools", "type": "article", "url": "https://www.w3schools.com/java/", "platform": "W3Schools", "difficulty": "beginner"},
-                {"title": "Oracle Java Tutorials", "type": "article", "url": "https://docs.oracle.com/javase/tutorial/", "platform": "Oracle", "difficulty": "all levels"},
-            ],
-            "javascript": [
-                {"title": "JavaScript Tutorial - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=PkZNo7MFNFg", "platform": "YouTube", "difficulty": "beginner"},
-                {"title": "MDN JavaScript Guide", "type": "article", "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide", "platform": "MDN", "difficulty": "all levels"},
-                {"title": "JavaScript30", "type": "practice", "url": "https://javascript30.com/", "platform": "JavaScript30", "difficulty": "intermediate"},
-                {"title": "Eloquent JavaScript (Free Book)", "type": "article", "url": "https://eloquentjavascript.net/", "platform": "Online Book", "difficulty": "beginner"},
-            ],
-            "web development": [
-                {"title": "Web Development Full Course", "type": "video", "url": "https://www.youtube.com/watch?v=nu_pCVPKzTk", "platform": "YouTube", "difficulty": "beginner"},
-                {"title": "FreeCodeCamp Curriculum", "type": "interactive", "url": "https://www.freecodecamp.org/learn/", "platform": "freeCodeCamp", "difficulty": "beginner"},
-                {"title": "W3Schools Tutorials", "type": "interactive", "url": "https://www.w3schools.com/", "platform": "W3Schools", "difficulty": "beginner"},
-                {"title": "The Odin Project", "type": "course", "url": "https://www.theodinproject.com/", "platform": "Odin Project", "difficulty": "beginner"},
-            ],
-            "react": [
-                {"title": "React Course - Scrimba", "type": "interactive", "url": "https://scrimba.com/learn/learnreact", "platform": "Scrimba", "difficulty": "beginner"},
-                {"title": "React Official Tutorial", "type": "article", "url": "https://react.dev/learn", "platform": "React.dev", "difficulty": "beginner"},
-                {"title": "Full React Course - FreeCodeCamp", "type": "video", "url": "https://www.youtube.com/watch?v=bMknfKXIFA8", "platform": "YouTube", "difficulty": "beginner"},
-            ],
-            "data science": [
-                {"title": "Data Science Full Course", "type": "video", "url": "https://www.youtube.com/watch?v=ua-CiDNNj30", "platform": "YouTube", "difficulty": "beginner"},
-                {"title": "Kaggle Learn", "type": "interactive", "url": "https://www.kaggle.com/learn", "platform": "Kaggle", "difficulty": "beginner"},
-                {"title": "DataCamp Free Courses", "type": "interactive", "url": "https://www.datacamp.com/courses", "platform": "DataCamp", "difficulty": "beginner"},
-            ],
-            "machine learning": [
-                {"title": "Machine Learning Course - Andrew Ng", "type": "course", "url": "https://www.coursera.org/learn/machine-learning", "platform": "Coursera", "difficulty": "intermediate"},
-                {"title": "ML Crash Course - Google", "type": "interactive", "url": "https://developers.google.com/machine-learning/crash-course", "platform": "Google", "difficulty": "beginner"},
-                {"title": "Fast.ai Practical Deep Learning", "type": "course", "url": "https://course.fast.ai/", "platform": "Fast.ai", "difficulty": "intermediate"},
-            ],
-        }
-        
-        # Find matching resources
-        topic_lower = topic.lower()
-        matching_resources = []
-        
-        for key, resources in resource_db.items():
-            if key in topic_lower or topic_lower in key:
-                matching_resources = resources
-                break
-        
-        # If no match, return general search resources
-        if not matching_resources:
-            matching_resources = [
-                {"title": f"YouTube: {topic}", "type": "video", "url": f"https://www.youtube.com/results?search_query={topic.replace(' ', '+')}+tutorial", "platform": "YouTube", "difficulty": "all"},
-                {"title": f"FreeCodeCamp", "type": "interactive", "url": "https://www.freecodecamp.org/learn", "platform": "freeCodeCamp", "difficulty": "beginner"},
-            ]
-        
-        # Return diverse mix of resource types
-        return matching_resources[:5]  # Return top 5
+        return [
+            {
+                "title": f"{topic} - Khan Academy",
+                "type": "video",
+                "url": f"https://www.khanacademy.org/search?page_search_query={topic_encoded}",
+                "platform": "Khan Academy",
+                "difficulty": "beginner",
+                "estimated_time": "Varies",
+                "is_free": True,
+                "description": f"Free educational videos and exercises on {topic}"
+            },
+            {
+                "title": f"{topic} Tutorial - freeCodeCamp",
+                "type": "interactive",
+                "url": "https://www.freecodecamp.org/news/search/?query=" + topic_encoded,
+                "platform": "freeCodeCamp",
+                "difficulty": "beginner",
+                "estimated_time": "Varies",
+                "is_free": True,
+                "description": f"Interactive coding tutorials on {topic}"
+            },
+            {
+                "title": f"{topic} Course - Coursera",
+                "type": "course",
+                "url": f"https://www.coursera.org/search?query={topic_encoded}",
+                "platform": "Coursera",
+                "difficulty": "all",
+                "estimated_time": "Varies",
+                "is_free": True,
+                "description": f"University-level courses on {topic}"
+            },
+            {
+                "title": f"{topic} Documentation - MDN Web Docs",
+                "type": "article",
+                "url": f"https://developer.mozilla.org/en-US/search?q={topic_encoded}",
+                "platform": "MDN",
+                "difficulty": "intermediate",
+                "estimated_time": "Self-paced",
+                "is_free": True,
+                "description": f"Technical documentation on {topic}"
+            },
+            {
+                "title": f"{topic} - MIT OpenCourseWare",
+                "type": "course",
+                "url": f"https://ocw.mit.edu/search/?q={topic_encoded}",
+                "platform": "MIT",
+                "difficulty": "advanced",
+                "estimated_time": "Varies",
+                "is_free": True,
+                "description": f"MIT course materials on {topic}"
+            }
+        ]
 
     @staticmethod
-    def get_smart_resources(topic, resource_type="all", limit=5, context=None):
+    def get_smart_resources(topic, resource_type="all", limit=5, context=None, topic_category=None):
         from resources.models import Resource
         from django.db.models import Q
         from django.db import connection
@@ -596,12 +553,13 @@ class LearningAIService:
             # Get ALL URLs already in database to avoid duplicates (not just for this topic)
             existing_urls = set(Resource.objects.all().values_list('url', flat=True))
             
-            # Generate new resources via AI with full context
+            # Generate new resources via AI with full context and topic category
             try:
                 new_resources_data = LearningAIService.suggest_resources(
                     topic, 
                     resource_type,
-                    context=context  # Pass the rich context
+                    context=context,  # Pass the rich context
+                    topic_category=topic_category  # Pass the topic category
                 )
                 
                 print(f"AI generated {len(new_resources_data)} resources for topic: {topic}")
