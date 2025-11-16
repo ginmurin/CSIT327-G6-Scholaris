@@ -94,18 +94,17 @@ class QuizGenerationService:
             
             # Animate loading
             print("⏳ Contacting AI server...")
-            time.sleep(0.5)
             
-            # Make API call
+            # Make API call with timeout
             response = client.chat.completions.create(
                 model="deepseek/deepseek-chat-v3.1:free",
                 messages=messages,
                 temperature=0.3,
-                max_tokens=4000
+                max_tokens=4000,
+                timeout=60.0  # 60 second timeout for API call
             )
             
             print("📥 Receiving quiz data...")
-            time.sleep(0.3)
             
             content = response.choices[0].message.content
             
