@@ -111,47 +111,22 @@ STUDY PLAN CONTEXT:
 IMPORTANT: Focus on resources that help achieve the learning objective above.
 """
         
-        # Build the prompt
-        prompt = f"""You are an expert learning resource curator. Find {limit} REAL, HIGH-QUALITY learning resources with SPECIFIC, WORKING URLs for this topic:
+        # Build a simplified, faster prompt
+        prompt = f"""Find {limit} real learning resources for: {topic}
+{category_hint}
+Requirements:
+- DIRECT URLs only (no search pages)
+- Mix of videos, articles, courses
+- Reputable platforms (YouTube, Khan Academy, Coursera, etc.)
+- Accurate descriptions
 
-Topic: {topic}
-{category_hint}Resource Type: {resource_type}
-{context_info}
-
-CRITICAL REQUIREMENTS:
-1. Provide DIRECT URLs to specific resources (NOT search pages)
-2. Each URL must be a real, working link to actual content
-3. Good URL examples:
-   - https://www.youtube.com/watch?v=VIDEO_ID (specific YouTube video)
-   - https://www.khanacademy.org/subject/topic (specific Khan Academy lesson)
-   - https://www.coursera.org/learn/course-name (specific Coursera course)
-   - https://developer.mozilla.org/docs/Web/JavaScript (MDN documentation)
-   - https://www.udemy.com/course/course-name (specific Udemy course)
-   - https://www.w3schools.com/python/ (W3Schools tutorial)
-4. NEVER use search URLs like "youtube.com/results" or "search?q="
-
-IMPORTANT RULES:
-- Provide resources for ANY topic (not just programming)
-- Mix different resource types (videos, articles, interactive, courses)
-- Include both beginner and intermediate level resources
-- Ensure descriptions are helpful and specific
-- All resources must be from reputable platforms
-
-For non-programming topics, use appropriate platforms:
-- Languages: Duolingo, Babbel, BBC Languages, FluentU
-- Science: Khan Academy, Crash Course, MIT OpenCourseWare
-- Arts: Skillshare, Domestika, YouTube tutorials
-- Music: Musictheory.net, JustinGuitar, YouTube lessons
-- Fitness: Nike Training Club, Yoga With Adriene, Fitness Blender
-- Business: Coursera, edX, HarvardX
-
-Return ONLY a valid JSON array (no markdown, no extra text):
+Return ONLY valid JSON array:
 [
     {{
-        "title": "Exact resource title",
+        "title": "Resource title",
         "type": "video",
         "url": "https://direct-url.com",
-        "description": "Clear description of what you'll learn",
+        "description": "What you'll learn",
         "estimated_time": "2 hours",
         "difficulty": "beginner",
         "platform": "YouTube",
@@ -159,26 +134,31 @@ Return ONLY a valid JSON array (no markdown, no extra text):
     }}
 ]
 
-Resource types: video, article, interactive, course, practice, documentation
-Valid difficulty levels: beginner, intermediate, advanced, all
-
-Generate {limit} diverse, high-quality resources now:"""
+Types: video, article, interactive, course, practice, documentation
+Difficulty: beginner, intermediate, advanced, all"""
 
         try:
             client = get_openrouter_client()
             
             # Call DeepSeek API via OpenRouter
-            print(f"🤖 Calling DeepSeek AI for resource generation...")
+            print(f"🤖 Calling AI for resource generation...")
             response = client.chat.completions.create(
                 model="openrouter/sherlock-think-alpha",
                 messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a fast resource curator. Output ONLY valid JSON arrays, no explanations."
+                    },
                     {
                         "role": "user",
                         "content": prompt
                     }
                 ],
+                temperature=0.3,
+                max_tokens=2000,
+                timeout=45.0,  # 45 second timeout
                 extra_body={
-                    "reasoning": {"enabled": True},
+                    "reasoning": {"enabled": False},  # Disable reasoning for faster response
                     "provider": {
                         "sort": "throughput"
                     }
@@ -187,7 +167,7 @@ Generate {limit} diverse, high-quality resources now:"""
             
             # Extract the response
             result_text = response.choices[0].message.content.strip()
-            print(f"✅ Received response from DeepSeek")
+            print(f"✅ Received response from AI")
             
             # Clean up markdown formatting if present
             if result_text.startswith('```json'):
