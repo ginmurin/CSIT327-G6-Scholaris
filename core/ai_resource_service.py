@@ -3,6 +3,7 @@ import os
 import json
 import re
 import random
+import urllib.parse
 
 def get_openrouter_client():
     """Initialize OpenRouter client for DeepSeek API"""
@@ -33,14 +34,17 @@ class ResourceGenerationService:
         "🏆 Gathering championship resources...",
         "🎭 Curating your educational playlist...",
         "🌺 Blooming your learning garden...",
-        "🎸 Tuning up your study symphony..."
+        "🎸 Tuning up your study symphony...",
     ]
-    
+
+    # Hard cap so we don't fight Render's 30s rule
+    AI_TIMEOUT_SECONDS = float(os.getenv("RESOURCE_AI_TIMEOUT", "12"))  # ✅ fail fast
+
     @staticmethod
     def get_loading_message():
         """Return a random fun loading message"""
         return random.choice(ResourceGenerationService.LOADING_MESSAGES)
-    
+
     @staticmethod
     def generate_resources(topic, resource_type="all", context=None, topic_category=None, limit=5):
         """
@@ -56,14 +60,14 @@ class ResourceGenerationService:
         Returns:
             List of resource dictionaries with title, url, type, description, etc.
         """
-        # Validate and clamp limit between 3 and 6
-        limit = max(3, min(6, limit))
-        
-        # Show random fun loading message
+        # Clamp limit between 3 and 6
+        limit = max(3, min(6, int(limit or 5)))
+
+        # Optional: you might keep these prints in dev, remove in prod
         print(f"\n{ResourceGenerationService.get_loading_message()}")
         print(f"📊 Generating {limit} resources for '{topic}'...")
-        
-        # Build category hint
+
+        # Build category hint (kept but light)
         category_hint = ""
         if topic_category:
             category_names = {
@@ -96,116 +100,125 @@ class ResourceGenerationService:
             }
             category_name = category_names.get(topic_category, topic_category)
             category_hint = f"Category: {category_name}\n"
-        
-        # Build context information
+
+        # Build a compact prompt (less tokens = faster)
         context_info = ""
         if context:
-            context_info = f"""
-STUDY PLAN CONTEXT:
-- Description: {context.get('description', 'Not provided')}
-- Learning Objective: {context.get('learning_objective', 'Not specified')}
-- Preferred Resources: {context.get('preferred_resources', 'Any type')}
-- Duration: {context.get('duration', 'Flexible')}
-- Time Commitment: {context.get('hours_per_week', 'Flexible')}
+            context_info = (
+                f"Context: {context.get('description', '')} "
+                f"Goal: {context.get('learning_objective', '')} "
+                f"Preferred: {context.get('preferred_resources', 'Any')} "
+                f"Duration: {context.get('duration', 'Flexible')} "
+                f"Hours/Week: {context.get('hours_per_week', 'Flexible')}\n"
+            )
 
-IMPORTANT: Focus on resources that help achieve the learning objective above.
-"""
-        
-        # Build a simplified, faster prompt
         prompt = f"""Find {limit} real learning resources for: {topic}
-{category_hint}
+{category_hint}{context_info}
 Requirements:
-- DIRECT URLs only (no search pages)
-- Mix of videos, articles, courses
-- Reputable platforms (YouTube, Khan Academy, Coursera, etc.)
-- Accurate descriptions
+- DIRECT URLs only (no search results pages)
+- Mix of videos, articles, courses if possible
+- Platforms like YouTube, Khan Academy, Coursera, etc.
+- Short, accurate descriptions
 
-Return ONLY valid JSON array:
+Return ONLY a valid JSON array (no text before or after), e.g.:
+
 [
-    {{
-        "title": "Resource title",
-        "type": "video",
-        "url": "https://direct-url.com",
-        "description": "What you'll learn",
-        "estimated_time": "2 hours",
-        "difficulty": "beginner",
-        "platform": "YouTube",
-        "is_free": true
-    }}
+  {{
+    "title": "Resource title",
+    "type": "video",
+    "url": "https://direct-url.com",
+    "description": "What you'll learn",
+    "estimated_time": "2 hours",
+    "difficulty": "beginner",
+    "platform": "YouTube",
+    "is_free": true
+  }}
 ]
 
-Types: video, article, interactive, course, practice, documentation
-Difficulty: beginner, intermediate, advanced, all"""
+Types: video, article, interactive, course, practice, documentation.
+Difficulty: beginner, intermediate, advanced, all.
+"""
 
         try:
             client = get_openrouter_client()
-            
-            # Call DeepSeek API via OpenRouter
-            print(f"🤖 Calling AI for resource generation...")
+
+            print("🤖 Calling AI for resource generation...")
+
             response = client.chat.completions.create(
                 model="openrouter/sherlock-think-alpha",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a fast resource curator. Output ONLY valid JSON arrays, no explanations."
+                        "content": (
+                            "You are a fast resource curator. "
+                            "Output ONLY a valid JSON array with resource objects. "
+                            "No explanation, no markdown."
+                        ),
                     },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=2000,
-                timeout=45.0,  # 45 second timeout
+                max_tokens=700,            # ✅ smaller = faster
+                timeout=ResourceGenerationService.AI_TIMEOUT_SECONDS,  # ✅ fail fast
                 extra_body={
-                    "reasoning": {"enabled": False},  # Disable reasoning for faster response
-                    "provider": {
-                        "sort": "throughput"
-                    }
-                }
+                    "reasoning": {"enabled": False},
+                    "provider": {"sort": "throughput"},
+                },
             )
-            
-            # Extract the response
-            result_text = response.choices[0].message.content.strip()
-            print(f"✅ Received response from AI")
-            
-            # Clean up markdown formatting if present
-            if result_text.startswith('```json'):
+
+            result_text = (response.choices[0].message.content or "").strip()
+            print("✅ Received response from AI")
+
+            # Clean up possible markdown fencing just in case
+            if result_text.startswith("```json"):
                 result_text = result_text[7:]
-            if result_text.startswith('```'):
+            if result_text.startswith("```"):
                 result_text = result_text[3:]
-            if result_text.endswith('```'):
+            if result_text.endswith("```"):
                 result_text = result_text[:-3]
             result_text = result_text.strip()
-            
-            # Try to extract JSON array if it's embedded in text
-            json_match = re.search(r'\[[\s\S]*\]', result_text)
+
+            # Extract JSON array safely
+            json_match = re.search(r"\[[\s\S]*\]", result_text)
             if json_match:
                 result_text = json_match.group(0)
-            
-            # Parse JSON
-            resources = json.loads(result_text)
-            
-            # Validate resources structure
+
+            try:
+                resources = json.loads(result_text)
+            except json.JSONDecodeError as je:
+                print(f"❌ JSON parse error: {je}")
+                raise ValueError("Failed to parse AI JSON")
+
             if not isinstance(resources, list):
-                raise ValueError("Response is not a list")
-            
-            print(f"✅ Successfully generated {len(resources)} resources")
-            return resources
-            
+                raise ValueError("AI response is not a JSON list")
+
+            # Optional: sanity filter
+            cleaned = []
+            for r in resources:
+                if not isinstance(r, dict):
+                    continue
+                if "title" not in r or "url" not in r:
+                    continue
+                cleaned.append(r)
+
+            if not cleaned:
+                raise ValueError("No valid resources after cleaning")
+
+            print(f"✅ Successfully generated {len(cleaned)} resources")
+            # Enforce requested limit
+            return cleaned[:limit]
+
         except Exception as e:
+            # Any error → immediate fallback (fast, safe)
             print(f"❌ Error generating resources with DeepSeek: {e}")
-            # Return fallback resources
             return ResourceGenerationService._get_fallback_resources(topic, limit)
-    
+
     @staticmethod
     def _get_fallback_resources(topic, limit=7):
-        """Generate fallback resources when AI fails"""
-        import urllib.parse
+        """Generate fallback resources when AI fails quickly"""
         topic_encoded = urllib.parse.quote(topic)
-        
         print(f"⚠️ Using fallback resources for: {topic}")
-        
+
         fallback = [
             {
                 "title": f"{topic} - YouTube Tutorials",
@@ -215,7 +228,7 @@ Difficulty: beginner, intermediate, advanced, all"""
                 "difficulty": "all",
                 "estimated_time": "Varies",
                 "is_free": True,
-                "description": f"Video tutorials and courses on {topic}"
+                "description": f"Video tutorials and courses on {topic}",
             },
             {
                 "title": f"{topic} - Khan Academy",
@@ -225,7 +238,7 @@ Difficulty: beginner, intermediate, advanced, all"""
                 "difficulty": "beginner",
                 "estimated_time": "Varies",
                 "is_free": True,
-                "description": f"Free educational videos and exercises on {topic}"
+                "description": f"Free educational videos and exercises on {topic}",
             },
             {
                 "title": f"{topic} Course - Coursera",
@@ -235,7 +248,7 @@ Difficulty: beginner, intermediate, advanced, all"""
                 "difficulty": "all",
                 "estimated_time": "Varies",
                 "is_free": True,
-                "description": f"University-level courses on {topic}"
+                "description": f"University-level courses on {topic}",
             },
             {
                 "title": f"{topic} Documentation - MDN Web Docs",
@@ -245,17 +258,17 @@ Difficulty: beginner, intermediate, advanced, all"""
                 "difficulty": "intermediate",
                 "estimated_time": "Reference",
                 "is_free": True,
-                "description": f"Comprehensive documentation and guides on {topic}"
+                "description": f"Comprehensive documentation and guides on {topic}",
             },
             {
                 "title": f"{topic} Tutorial - W3Schools",
                 "type": "interactive",
-                "url": f"https://www.w3schools.com/",
+                "url": "https://www.w3schools.com/",
                 "platform": "W3Schools",
                 "difficulty": "beginner",
                 "estimated_time": "Varies",
                 "is_free": True,
-                "description": f"Interactive tutorials and examples for {topic}"
+                "description": f"Interactive tutorials and examples for {topic}",
             },
             {
                 "title": f"{topic} - Udemy Courses",
@@ -265,7 +278,7 @@ Difficulty: beginner, intermediate, advanced, all"""
                 "difficulty": "all",
                 "estimated_time": "Varies",
                 "is_free": False,
-                "description": f"Professional courses on {topic}"
+                "description": f"Professional courses on {topic}",
             },
             {
                 "title": f"{topic} - edX Learning",
@@ -275,8 +288,8 @@ Difficulty: beginner, intermediate, advanced, all"""
                 "difficulty": "all",
                 "estimated_time": "Varies",
                 "is_free": True,
-                "description": f"University courses and programs on {topic}"
-            }
+                "description": f"University courses and programs on {topic}",
+            },
         ]
-        
+
         return fallback[:limit]
