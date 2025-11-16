@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
+from decimal import Decimal
 from .models import Quiz, Question, QuestionOption, QuizAttempt, Answer
 from .forms import QuizForm, QuestionForm
 from authentication.models import User
@@ -18,9 +19,18 @@ def require_login(view_func):
     return wrapper
 
 
+def update_user_rankings():
+    """Update rankings for all users based on total_points"""
+    users = User.objects.all().order_by('-total_points', 'id')
+    
+    for rank, user in enumerate(users, start=1):
+        user.current_rank = rank
+        user.save(update_fields=['current_rank'])
+
+
 @require_login
 def quiz_list(request):
-    """Display all quizzes for the logged-in user"""
+    """Display all quizzes for the logged-in user including public quizzes from same categories"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
     
@@ -33,20 +43,53 @@ def quiz_list(request):
             selected_study_plan = StudyPlan.objects.get(id=study_plan_id, user=user)
             # Get quizzes for this specific study plan
             my_quizzes = Quiz.objects.filter(created_by=user, study_plan=selected_study_plan)
-            # Available quizzes (reserved for AI-generated quizzes in the future)
-            study_plan_quizzes = Quiz.objects.filter(study_plan=selected_study_plan).exclude(created_by=user)
+            
+            # Available quizzes: AI-generated + public quizzes from same category
+            ai_quizzes = Quiz.objects.filter(study_plan=selected_study_plan, created_by=None)
+            
+            # Get public quizzes from other users with same topic category
+            public_quizzes = Quiz.objects.filter(
+                is_public=True,
+                status='published',
+                study_plan__topic_category=selected_study_plan.topic_category
+            ).exclude(created_by=user).exclude(created_by=None)
+            
+            # Combine AI and public quizzes
+            study_plan_quizzes = list(ai_quizzes) + list(public_quizzes)
+            
         except StudyPlan.DoesNotExist:
             my_quizzes = Quiz.objects.filter(created_by=user)
             study_plan_quizzes = Quiz.objects.filter(study_plan__user=user).exclude(created_by=user)
     else:
         # Get all quizzes created by user
         my_quizzes = Quiz.objects.filter(created_by=user)
-        # Available quizzes (reserved for AI-generated quizzes in the future)
-        study_plan_quizzes = Quiz.objects.filter(study_plan__user=user).exclude(created_by=user)
+        
+        # Get all user's study plans to find relevant public quizzes
+        user_study_plans = StudyPlan.objects.filter(user=user)
+        user_categories = user_study_plans.values_list('topic_category', flat=True).distinct()
+        
+        # Available quizzes: AI-generated from user's study plans + public quizzes from same categories
+        ai_quizzes = Quiz.objects.filter(study_plan__user=user, created_by=None)
+        
+        public_quizzes = Quiz.objects.filter(
+            is_public=True,
+            status='published',
+            study_plan__topic_category__in=user_categories
+        ).exclude(created_by=user).exclude(created_by=None)
+        
+        study_plan_quizzes = list(ai_quizzes) + list(public_quizzes)
+    
+    # For quizzes, check if user has taken them
+    quiz_attempts = {}
+    for quiz in study_plan_quizzes:
+        if quiz.created_by is None:  # AI quiz
+            has_taken = QuizAttempt.objects.filter(quiz=quiz, user=user, completed_at__isnull=False).exists()
+            quiz_attempts[quiz.id] = has_taken
     
     return render(request, 'quiz/quiz_list.html', {
         'my_quizzes': my_quizzes,
         'study_plan_quizzes': study_plan_quizzes,
+        'quiz_attempts': quiz_attempts,
         'selected_study_plan': selected_study_plan,
         'name': request.session.get("app_user_name", "User")
     })
@@ -159,17 +202,35 @@ def quiz_detail(request, quiz_id):
     quiz = get_object_or_404(Quiz, id=quiz_id)
     
     # Check if user can access this quiz
+    # AI-generated quizzes (created_by is None) cannot be edited or deleted
     can_edit = quiz.created_by == user
-    
-    questions = quiz.questions.prefetch_related('options').all()
+    is_ai_quiz = quiz.created_by is None
+    is_other_user_quiz = quiz.created_by is not None and quiz.created_by != user
     
     # Get user's attempts
     attempts = QuizAttempt.objects.filter(quiz=quiz, user=user).order_by('-started_at')
+    
+    # Check if user has already taken quiz
+    has_taken_quiz = attempts.filter(completed_at__isnull=False).exists()
+    
+    # For AI quizzes, redirect to take_quiz if not yet taken
+    if is_ai_quiz and not has_taken_quiz:
+        messages.info(request, 'Take the quiz first to see the details!')
+        return redirect('take_quiz', quiz_id=quiz.id)
+    
+    # For other users' quizzes, redirect to take_quiz if not yet taken
+    if is_other_user_quiz and not has_taken_quiz:
+        messages.info(request, 'Take the quiz first to see the details!')
+        return redirect('take_quiz', quiz_id=quiz.id)
+    
+    questions = quiz.questions.prefetch_related('options').all()
     
     return render(request, 'quiz/quiz_detail.html', {
         'quiz': quiz,
         'questions': questions,
         'can_edit': can_edit,
+        'is_ai_quiz': is_ai_quiz,
+        'has_taken_quiz': has_taken_quiz,
         'attempts': attempts,
         'name': request.session.get("app_user_name", "User")
     })
@@ -250,6 +311,26 @@ def delete_question(request, question_id):
 
 
 @require_login
+def delete_quiz(request, quiz_id):
+    """Delete a quiz (only drafts can be deleted)"""
+    user_id = request.session.get("app_user_id")
+    user = User.objects.get(id=user_id)
+    quiz = get_object_or_404(Quiz, id=quiz_id, created_by=user)
+    
+    # Only allow deletion of draft quizzes
+    if quiz.status != 'draft':
+        messages.error(request, 'Only draft quizzes can be deleted!')
+        return redirect('quiz_detail', quiz_id=quiz.id)
+    
+    if request.method == 'POST':
+        quiz.delete()
+        messages.success(request, 'Quiz deleted successfully!')
+        return redirect('quiz_list')
+    
+    return redirect('quiz_detail', quiz_id=quiz.id)
+
+
+@require_login
 def publish_quiz(request, quiz_id):
     """Publish a quiz"""
     user_id = request.session.get("app_user_id")
@@ -280,6 +361,13 @@ def take_quiz(request, quiz_id):
     
     # Check attempts
     attempts_count = QuizAttempt.objects.filter(quiz=quiz, user=user).count()
+    
+    # AI-generated quizzes (created_by is None) only allow one attempt
+    if quiz.created_by is None and attempts_count >= 1:
+        messages.error(request, 'You have already completed this AI-generated quiz!')
+        return redirect('quiz_detail', quiz_id=quiz.id)
+    
+    # User-created quizzes respect max_attempts setting
     if quiz.max_attempts and attempts_count >= quiz.max_attempts:
         messages.error(request, 'You have reached the maximum number of attempts for this quiz!')
         return redirect('quiz_detail', quiz_id=quiz.id)
@@ -299,17 +387,21 @@ def take_quiz(request, quiz_id):
         import random
         random.shuffle(questions)
     
+    # Check if it's an AI quiz
+    is_ai_quiz = quiz.created_by is None
+    
     return render(request, 'quiz/take_quiz.html', {
         'quiz': quiz,
         'attempt': attempt,
         'questions': questions,
+        'is_ai_quiz': is_ai_quiz,
         'name': request.session.get("app_user_name", "User")
     })
 
 
 @require_login
 def submit_quiz(request, attempt_id):
-    """Submit quiz answers"""
+    """Submit quiz answers and award points"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
     attempt = get_object_or_404(QuizAttempt, id=attempt_id, user=user)
@@ -317,11 +409,9 @@ def submit_quiz(request, attempt_id):
     if request.method == 'POST':
         with transaction.atomic():
             correct_count = 0
-            total_points = 0
-            earned_points = 0
+            total_questions = attempt.quiz.total_questions
             
             for question in attempt.quiz.questions.all():
-                total_points += question.points
                 selected_option_id = request.POST.get(f'question_{question.id}')
                 
                 if selected_option_id:
@@ -337,21 +427,46 @@ def submit_quiz(request, attempt_id):
                     
                     if is_correct:
                         correct_count += 1
-                        earned_points += question.points
             
-            # Update attempt
+            # Calculate percentage
+            if total_questions > 0:
+                attempt.percentage_score = (correct_count / total_questions) * 100
+                attempt.is_passed = attempt.percentage_score >= attempt.quiz.passing_score
+            
             attempt.completed_at = timezone.now()
-            attempt.total_score = earned_points
-            attempt.answers_count = attempt.quiz.total_questions
+            attempt.answers_count = total_questions
             attempt.correct_answers = correct_count
             
-            if total_points > 0:
-                attempt.percentage_score = (earned_points / total_points) * 100
-                attempt.is_passed = attempt.percentage_score >= attempt.quiz.passing_score
+            # Calculate and award points (only for 1st attempt)
+            if attempt.attempt_number == 1:
+                is_ai_quiz = attempt.quiz.created_by is None
+                
+                if is_ai_quiz:
+                    # AI Quiz: 1 point per correct answer
+                    points_earned = Decimal(str(correct_count * 1.0))
+                else:
+                    # Custom Quiz: 0.75-1 point per correct answer (average 0.875)
+                    points_earned = Decimal(str(correct_count * 0.875))
+                
+                attempt.points_earned = points_earned
+                
+                # Add points to user's total (round to nearest integer)
+                user.total_points += round(float(points_earned))
+                user.save(update_fields=['total_points'])
+                
+                # Update user rankings
+                update_user_rankings()
+                
+                print(f"🎯 Points awarded: {round(float(points_earned))} points to {user.name} (Quiz: {attempt.quiz.title}, AI: {is_ai_quiz}, Correct: {correct_count})")
             
             attempt.save()
             
-            messages.success(request, f'Quiz submitted! You scored {attempt.percentage_score:.1f}%')
+            # Show points earned message for first attempt
+            if attempt.attempt_number == 1:
+                messages.success(request, f'Quiz submitted! You scored {attempt.percentage_score:.1f}% and earned {int(attempt.points_earned)} points!')
+            else:
+                messages.success(request, f'Quiz submitted! You scored {attempt.percentage_score:.1f}%')
+            
             return redirect('quiz_result', attempt_id=attempt.id)
     
     return redirect('quiz_detail', quiz_id=attempt.quiz.id)
@@ -378,9 +493,13 @@ def quiz_result(request, attempt_id):
             'is_correct': answer.is_correct
         })
     
+    # Check if it's an AI quiz
+    is_ai_quiz = attempt.quiz.created_by is None
+    
     return render(request, 'quiz/quiz_result.html', {
         'attempt': attempt,
         'results': results,
+        'is_ai_quiz': is_ai_quiz,
         'name': request.session.get("app_user_name", "User")
     })
 
@@ -438,5 +557,25 @@ def quiz_stats(request):
         'total_attempts': total_attempts,
         'completed_attempts': completed_attempts,
         'passed_attempts': passed_attempts,
+        'name': request.session.get("app_user_name", "User")
+    })
+
+
+@require_login
+def leaderboard(request):
+    """Display global leaderboard based on total points"""
+    user_id = request.session.get("app_user_id")
+    current_user = User.objects.get(id=user_id)
+    
+    # Get top 100 users ordered by points
+    top_users = User.objects.all().order_by('-total_points', 'id')[:100]
+    
+    # Get current user's rank and nearby users
+    user_rank = current_user.current_rank if current_user.current_rank > 0 else User.objects.filter(total_points__gt=current_user.total_points).count() + 1
+    
+    return render(request, 'quiz/leaderboard.html', {
+        'top_users': top_users,
+        'current_user': current_user,
+        'user_rank': user_rank,
         'name': request.session.get("app_user_name", "User")
     })

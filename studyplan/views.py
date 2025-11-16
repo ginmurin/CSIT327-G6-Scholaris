@@ -4,7 +4,9 @@ from django.db import connection
 from .models import StudyPlan
 from .forms import StudyPlanForm
 from authentication.models import User
-from core.ai_service import LearningAIService
+from core.ai_quiz_service import QuizGenerationService
+from core.ai_resource_service import ResourceGenerationService
+from quiz.models import Quiz, Question, QuestionOption
 
 # Create your views here.
 
@@ -51,53 +53,68 @@ def list_study_plans(request):
 
 @require_login
 def create_study_plan(request):
-    """Create a new study plan with AI recommendations"""
+    """Create a new study plan"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
-    
-    # Generate AI recommendations for creating study plans
-    ai_recommendations = None
-    ai_resources = None
     
     if request.method == 'POST':
         form = StudyPlanForm(request.POST)
         if form.is_valid():
             study_plan = form.save(commit=False)
             study_plan.user = user
+            study_plan.save()
             
-            # Generate topic-specific AI recommendations
+            # Generate AI quizzes for the study plan
             try:
-                topic_recommendations = LearningAIService.generate_study_recommendations(
-                    goals=user.goals,
-                    topic=study_plan.title  # Use the study plan title as topic
+                print(f"\n🎯 Generating AI quiz for study plan: {study_plan.title}")
+                quiz_data = QuizGenerationService.generate_quiz(
+                    topic=study_plan.title,
+                    difficulty="medium",
+                    num_questions=10
                 )
                 
-                # Add AI insights to the description if user wants
-                if topic_recommendations and study_plan.description:
-                    study_plan.description = study_plan.description
+                # Create the quiz WITHOUT created_by so it appears in Available Quizzes
+                quiz = Quiz.objects.create(
+                    title=f"{study_plan.title} - AI Generated Quiz",
+                    description=f"Automatically generated quiz for {study_plan.title}",
+                    study_plan=study_plan,
+                    total_questions=len(quiz_data.get("questions", [])),
+                    status="published"
+                )
+                
+                # Create questions from AI response
+                for idx, q_data in enumerate(quiz_data.get("questions", []), 1):
+                    question = Question.objects.create(
+                        quiz=quiz,
+                        question_text=q_data.get("question", ""),
+                        order=idx
+                    )
+                    
+                    # Create options (a, b, c, d)
+                    correct_answer = q_data.get("answer", "a").lower()
+                    for option_letter in ['a', 'b', 'c', 'd']:
+                        QuestionOption.objects.create(
+                            question=question,
+                            option_text=q_data.get(option_letter, ""),
+                            is_correct=(option_letter == correct_answer),
+                            order=ord(option_letter) - ord('a')
+                        )
+                
+                print(f"✅ Created quiz with {len(quiz_data.get('questions', []))} questions!")
+                messages.success(request, f'Study plan created with AI-generated quiz! 🎉')
+                
             except Exception as e:
-                print(f"AI Error during study plan creation: {e}")
+                print(f"❌ Error generating quiz: {e}")
+                messages.success(request, f'Study plan "{study_plan.title}" created successfully! 🎉')
             
-            study_plan.save()
-            messages.success(request, f'Study plan "{study_plan.title}" created successfully! 🎉')
             return redirect('home')  # Redirect to dashboard/home instead of list
     else:
         form = StudyPlanForm()
-        
-        # Generate general AI recommendations to help user plan
-        try:
-            ai_recommendations = LearningAIService.generate_study_recommendations(
-                goals=user.goals
-            )
-        except Exception as e:
-            print(f"AI Error: {e}")
-            ai_recommendations = None
     
     return render(request, 'studyplan/create_study_plan.html', {
         'form': form,
         'name': request.session.get("app_user_name", "User"),
-        'user': user,
-        'ai_recommendations': ai_recommendations
+        'user': user
     })
 
 @require_login
@@ -215,13 +232,13 @@ def get_resources(request, plan_id):
                 'status': study_plan.status
             }
             
-            # Use SMART resource system with FULL CONTEXT and topic category
-            resources_data = LearningAIService.get_smart_resources(
+            # Use DeepSeek AI to generate resources with FULL CONTEXT
+            resources_data = ResourceGenerationService.generate_resources(
                 topic=study_plan.title,
                 resource_type="all",
                 limit=8,
                 context=context,
-                topic_category=study_plan.topic_category  # Pass the category for flexible AI
+                topic_category=study_plan.topic_category
             )
             
             print(f"Received {len(resources_data)} resources from AI service")
@@ -467,6 +484,10 @@ def study_plan_progress(request, plan_id):
         quiz__study_plan=study_plan
     ).count()
     
+    # Get user's rank
+    user_rank = user.current_rank if user.current_rank > 0 else \
+                User.objects.filter(total_points__gt=user.total_points).count() + 1
+    
     return render(request, 'studyplan/progress_detail.html', {
         'study_plan': study_plan,
         'progress': progress,
@@ -474,5 +495,6 @@ def study_plan_progress(request, plan_id):
         'name': request.session.get("app_user_name", "User"),
         'quiz_count': quiz_count,
         'quiz_attempts_count': quiz_attempts_count,
+        'user_rank': user_rank,
     })
 

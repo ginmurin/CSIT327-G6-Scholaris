@@ -94,16 +94,6 @@
                                 {% endif %}
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.points.id_for_label }}" class="form-label">Points</label>
-                                    {{ form.points }}
-                                    {% if form.points.errors %}
-                                        <div class="text-danger">{{ form.points.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
                             <div class="mb-3">
                                 <label for="{{ form.explanation.id_for_label }}" class="form-label">Explanation (Optional)</label>
                                 {{ form.explanation }}

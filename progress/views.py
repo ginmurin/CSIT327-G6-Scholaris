@@ -64,6 +64,11 @@ def progress_dashboard(request):
     # Recent achievements
     recent_achievements = Achievement.objects.filter(user=user).order_by('-earned_at')[:5]
     
+    # Get user's points and rank
+    user_points = user.total_points
+    user_rank = user.current_rank if user.current_rank > 0 else \
+                User.objects.filter(total_points__gt=user.total_points).count() + 1
+    
     context = {
         'study_plans': study_plans,
         'total_plans': total_plans,
@@ -73,6 +78,8 @@ def progress_dashboard(request):
         'total_resources_completed': total_resources_completed,
         'recent_sessions': recent_sessions,
         'recent_achievements': recent_achievements,
+        'user_points': user_points,
+        'user_rank': user_rank,
     }
     
     return render(request, 'progress/dashboard.html', context)
@@ -282,11 +289,18 @@ def achievements_view(request):
     
     completed_plans = StudyPlan.objects.filter(user=user, status='completed').count()
     
+    # Get user's points and rank
+    user_points = user.total_points
+    user_rank = user.current_rank if user.current_rank > 0 else \
+                User.objects.filter(total_points__gt=user.total_points).count() + 1
+    
     context = {
         'achievements': achievements,
         'total_hours': float(total_hours),
         'total_resources': total_resources,
         'completed_plans': completed_plans,
+        'user_points': user_points,
+        'user_rank': user_rank,
     }
     
     return render(request, 'progress/achievements.html', context)

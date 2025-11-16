@@ -288,22 +288,21 @@
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-value">--</div>
-            <div class="stat-label">Average Grade</div>
-            <div style="font-size: 11px; color: rgba(240, 147, 251, 0.8); margin-top: 5px; font-weight: 600;">🚧 Coming Soon</div>
+            <div class="stat-icon">⭐</div>
+            <div class="stat-value">{{ user.total_points }}</div>
+            <div class="stat-label">Current Points</div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">📝</div>
-            <div class="stat-value">{{ quiz_attempts_count|default:0 }}</div>
-            <div class="stat-label">Quizzes Taken</div>
+            <div class="stat-icon">🏆</div>
+            <div class="stat-value">#{{ user_rank }}</div>
+            <div class="stat-label">Global Ranking</div>
           </div>
 
-          <div class="stat-card">
-            <div class="stat-icon">💎</div>
-            <div class="stat-value">{{ quiz_count|default:0 }}</div>
-            <div class="stat-label">Quiz History</div>
+          <div class="stat-card" onclick="window.location.href='{% url 'leaderboard' %}'" style="cursor: pointer;">
+            <div class="stat-icon">👑</div>
+            <div class="stat-value">View</div>
+            <div class="stat-label">Leaderboard</div>
           </div>
         </div>
 
@@ -346,11 +345,6 @@
           <div class="milestone-badge {% if progress.completion_percentage == 100 %}achieved{% endif %}">
             <div class="milestone-icon">🎉</div>
             <div class="milestone-name">Completed!</div>
-          </div>
-          
-          <div class="milestone-badge {% if progress.total_hours_spent >= 10 %}achieved{% endif %}">
-            <div class="milestone-icon">⏰</div>
-            <div class="milestone-name">10 Hours</div>
           </div>
         </div>
       </div>

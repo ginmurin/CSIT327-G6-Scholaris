@@ -24,6 +24,10 @@ class User(models.Model):
     login_streak = models.IntegerField(default=0)  # Current consecutive login days
     total_app_time = models.IntegerField(default=0)  # Total minutes spent on app
     session_start = models.DateTimeField(blank=True, null=True)  # Current session start time
+    
+    # Gamification - Points and Ranking
+    total_points = models.IntegerField(default=0)  # Total points earned from quizzes
+    current_rank = models.IntegerField(default=0)  # Current ranking among all users
 
     class Meta:
         db_table = "users"

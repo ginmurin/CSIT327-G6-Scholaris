@@ -23,6 +23,9 @@ googleapis-common-protos==1.70.0
 grpcio==1.75.1
 grpcio-status==1.71.2
 
+# OpenAI SDK (for OpenRouter API)
+openai==1.57.4
+
 # Environment Variables
 python-dotenv==1.1.1
 

@@ -54,12 +54,14 @@
       font-weight: 600;
       margin-bottom: 15px;
       animation: pulse 1.5s ease-in-out infinite;
+      transition: opacity 0.3s ease-in-out;
     }
     
     .loading-subtext {
       font-size: 16px;
       opacity: 0.9;
       margin-bottom: 30px;
+      transition: opacity 0.3s ease-in-out;
     }
     
     .loading-dots {
@@ -301,8 +303,8 @@
   <div class="loading-overlay" id="loadingScreen">
     <div class="loading-content">
       <div class="loading-spinner"></div>
-      <div class="loading-text">🤖 AI is Finding Resources</div>
-      <div class="loading-subtext">Curating the best learning materials for you</div>
+      <div class="loading-text" id="loadingText">🔍 Finding Resources</div>
+      <div class="loading-subtext" id="loadingSubtext">Discovering the best learning materials for you</div>
       <div class="loading-dots">
         <span></span>
         <span></span>
@@ -436,8 +438,56 @@
   </div>
 
   <script>
+    // Creative loading messages
+    const loadingMessages = [
+      { text: "🔍 Scouring the internet for gems", sub: "Finding the perfect resources for you" },
+      { text: "📚 Flipping through digital libraries", sub: "Discovering quality learning materials" },
+      { text: "🎯 Hunting down the perfect resources", sub: "Curating personalized recommendations" },
+      { text: "✨ Summoning the learning wizards", sub: "Magic is happening behind the scenes" },
+      { text: "🌟 Collecting knowledge treasures", sub: "Building your educational toolkit" },
+      { text: "🚀 Launching resource discovery mission", sub: "Exploring the learning universe" },
+      { text: "🎨 Painting your learning path", sub: "Creating your personalized journey" },
+      { text: "🔮 Consulting the wisdom archives", sub: "Accessing the knowledge vault" },
+      { text: "💎 Mining for educational diamonds", sub: "Finding the most valuable resources" },
+      { text: "🌈 Weaving your learning journey", sub: "Crafting a colorful study experience" },
+      { text: "🎪 Setting up your knowledge carnival", sub: "Preparing an exciting learning adventure" },
+      { text: "🏆 Gathering championship resources", sub: "Only the best for your success" },
+      { text: "🎭 Curating your educational playlist", sub: "Selecting the finest content" },
+      { text: "🌺 Blooming your learning garden", sub: "Nurturing your growth" },
+      { text: "🎸 Tuning up your study symphony", sub: "Harmonizing your learning experience" }
+    ];
+    
+    let messageIndex = 0;
+    
+    // Rotate loading messages every 2 seconds
+    function rotateLoadingMessage() {
+      const textElement = document.getElementById('loadingText');
+      const subtextElement = document.getElementById('loadingSubtext');
+      
+      if (textElement && subtextElement) {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        const message = loadingMessages[messageIndex];
+        
+        // Fade out
+        textElement.style.opacity = '0';
+        subtextElement.style.opacity = '0';
+        
+        setTimeout(() => {
+          textElement.textContent = message.text;
+          subtextElement.textContent = message.sub;
+          // Fade in
+          textElement.style.opacity = '1';
+          subtextElement.style.opacity = '1';
+        }, 300);
+      }
+    }
+    
+    // Start rotating messages
+    const messageInterval = setInterval(rotateLoadingMessage, 2500);
+    
     // Hide loading screen when page is fully loaded
     window.addEventListener('load', function() {
+      clearInterval(messageInterval);
       setTimeout(function() {
         document.getElementById('loadingScreen').classList.add('hidden');
         document.getElementById('mainContent').classList.add('visible');
@@ -446,6 +496,7 @@
     
     // Fallback: Hide loading screen after 3 seconds even if load event doesn't fire
     setTimeout(function() {
+      clearInterval(messageInterval);
       document.getElementById('loadingScreen').classList.add('hidden');
       document.getElementById('mainContent').classList.add('visible');
     }, 3000);

@@ -145,6 +145,25 @@ body::before {
   box-shadow: 0 6px 20px rgba(240, 147, 251, 0.5);
 }
 
+.btn-settings {
+  background: white;
+  color: #667eea;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  border: 2px solid #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.btn-settings:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .btn-secondary {
   background: #f1f5f9;
   color: #475569;

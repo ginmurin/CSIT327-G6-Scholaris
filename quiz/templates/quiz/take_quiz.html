@@ -80,9 +80,11 @@
                         <button type="submit" class="btn btn-success btn-lg">
                             <i class="fas fa-paper-plane"></i> Submit Quiz
                         </button>
-                        <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
+                        {% if not is_ai_quiz %}
+                            <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>

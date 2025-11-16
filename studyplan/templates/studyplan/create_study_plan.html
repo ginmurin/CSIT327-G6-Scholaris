@@ -92,20 +92,16 @@
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-content">
       <div class="loading-spinner"></div>
-      <div class="loading-text">🤖 Creating Your Study Plan</div>
-      <div class="loading-subtext">AI is generating personalized recommendations...</div>
+      <div class="loading-text">📚 Creating Your Study Plan</div>
+      <div class="loading-subtext">Please wait while we set up your learning journey...</div>
       <div class="loading-steps">
         <div class="loading-step">
           <span class="step-icon">✓</span>
-          <span>Analyzing your goals</span>
+          <span>Processing your information</span>
         </div>
         <div class="loading-step">
           <span class="step-icon">⏳</span>
-          <span>Finding best learning resources</span>
-        </div>
-        <div class="loading-step">
-          <span class="step-icon">⏳</span>
-          <span>Creating study schedule</span>
+          <span>Setting up your study plan</span>
         </div>
       </div>
     </div>
@@ -114,7 +110,7 @@
   <div class="container form-container">
     <div class="header">
       <h1>Create New Study Plan</h1>
-      <p>Plan your learning journey with AI-powered recommendations</p>
+      <p>Plan your learning journey with personalized recommendations</p>
       {% if user %}
         <div class="user-profile-badge">
           <span class="badge-icon">🎯</span>
@@ -123,11 +119,10 @@
       {% endif %}
     </div>
 
-    {% if ai_recommendations %}
-    <!-- AI Recommendations Helper -->
+    <!-- Study Planning Assistant -->
     <div class="ai-helper-box">
       <div class="ai-helper-header">
-        <h3>AI Study Planning Assistant</h3>
+        <h3>📚 Study Planning Assistant</h3>
         <p>Here are personalized tips to help you create an effective study plan:</p>
       </div>
       
@@ -135,16 +130,16 @@
         <div class="ai-tip-card">
           <h4>Recommended Techniques</h4>
           <ul class="compact-list">
-            {% for technique in ai_recommendations.study_techniques|slice:":3" %}
-              <li>{{ technique }}</li>
-            {% endfor %}
+            <li>✓ Use active learning methods</li>
+            <li>✓ Practice regularly with spaced repetition</li>
+            <li>✓ Set specific, measurable goals</li>
           </ul>
         </div>
         
         <div class="ai-tip-card">
           <h4>Time Suggestion</h4>
           <div class="time-suggestion">
-            <div class="time-big">{{ ai_recommendations.time_allocation.daily_minutes }} min</div>
+            <div class="time-big">60 min</div>
             <div class="time-label">per day</div>
           </div>
         </div>
@@ -152,14 +147,12 @@
         <div class="ai-tip-card">
           <h4>Quick Tips</h4>
           <ul class="compact-list">
-            {% for tip in ai_recommendations.tips|slice:":2" %}
-              <li>{{ tip }}</li>
-            {% endfor %}
+            <li>✓ Focus on diverse learning methods</li>
+            <li>✓ Stay consistent</li>
           </ul>
         </div>
       </div>
     </div>
-    {% endif %}
 
     <form method="post" class="study-plan-form">
       {% csrf_token %}

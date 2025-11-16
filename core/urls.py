@@ -2,13 +2,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.cache import never_cache
-from django.core.cache import cache
 from django.conf import settings
 from django.conf.urls.static import static
 from authentication.models import User as AppUser
 from studyplan.models import StudyPlan
-from core.ai_service import LearningAIService
-import hashlib
 
 @never_cache
 def home(request):
@@ -16,7 +13,7 @@ def home(request):
     if not request.session.get("app_user_id"):
         return redirect("landing")
     
-    # Get user and AI recommendations
+    # Get user
     user_id = request.session.get("app_user_id")
     try:
         user = AppUser.objects.get(id=user_id)
@@ -25,61 +22,22 @@ def home(request):
         request.session.flush()
         return redirect("landing")
     
-    # Get all study plans for this user (OPTIMIZED - single query)
+    # Get all study plans for this user (single query)
     all_plans = StudyPlan.objects.filter(user=user).order_by('-date_created')
-    study_plan_count = all_plans.count()  # Count from queryset instead of separate query
+    study_plan_count = all_plans.count()
     study_plans = all_plans[:6]  # Show latest 6
     
-    # Generate AI recommendations with CACHING
-    recommendations = None
+    # Get user's rank
+    user_rank = user.current_rank if user.current_rank > 0 else \
+                AppUser.objects.filter(total_points__gt=user.total_points).count() + 1
     
-    # Create unique cache key based on user ID and goals
-    goals_hash = hashlib.md5(user.goals.encode()).hexdigest()[:8]
-    cache_key = f"recommendations_{user.id}_{goals_hash}"
-    
-    # Try to get from cache first
-    recommendations = cache.get(cache_key)
-    
-    if recommendations:
-        print(f"✅ Cache HIT: Loaded recommendations from cache for user {user.id}")
-    else:
-        print(f"❌ Cache MISS: Generating new recommendations for user {user.id}")
-        try:
-            recommendations = LearningAIService.generate_study_recommendations(
-                goals=user.goals
-            )
-            
-            # Use SMART resource system (database + AI) for recommendations
-            if recommendations and 'recommended_resources' in recommendations:
-                # Get topic from user's goals for better matching
-                topic_keywords = user.goals.lower().split()[:3]  # First 3 words
-                topic = ' '.join(topic_keywords) if topic_keywords else 'learning'
-                
-                # Replace generic recommendations with smart database-backed resources
-                smart_resources = LearningAIService.get_smart_resources(
-                    topic=topic,
-                    resource_type="all",
-                    limit=5
-                )
-                
-                # Update recommendations with smart resources
-                recommendations['recommended_resources'] = smart_resources
-            
-            # Cache for 1 hour (3600 seconds)
-            cache.set(cache_key, recommendations, 3600)
-            print(f"💾 Cached recommendations for user {user.id} (expires in 1 hour)")
-                    
-        except Exception as e:
-            print(f"AI Error: {e}")
-            recommendations = None
-    
-    # Show authenticated home page with AI recommendations and study plans
+    # NO AI - just show the dashboard with user data
     return render(request, "authentication/home.html", {
         "name": request.session.get("app_user_name") or "User",
         "user": user,
-        "recommendations": recommendations,
         "study_plans": study_plans,
-        "study_plan_count": study_plan_count
+        "study_plan_count": study_plan_count,
+        "user_rank": user_rank
     })
 
 urlpatterns = [

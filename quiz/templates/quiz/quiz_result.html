@@ -51,7 +51,7 @@
                     <a href="{% url 'quiz_detail' attempt.quiz.id %}" class="btn btn-primary">
                         <i class="fas fa-eye"></i> View Quiz Details
                     </a>
-                    {% if attempt.quiz.allow_retake %}
+                    {% if attempt.quiz.allow_retake and not is_ai_quiz %}
                         <a href="{% url 'take_quiz' attempt.quiz.id %}" class="btn btn-success">
                             <i class="fas fa-redo"></i> Retake Quiz
                         </a>

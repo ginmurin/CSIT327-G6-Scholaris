@@ -28,19 +28,13 @@
           {% endif %}
         </div>
         <div class="welcome-text">
-          <h1>Welcome back, {{ name }}! 🎓</h1>
+          <h1>Welcome back, {{ name }}!</h1>
           <p>Ready to continue your journey?</p>
         </div>
       </div>
       <div class="header-actions">
-        <a href="{% url 'profile' %}" class="btn btn-profile">
-          Profile
-        </a>
-        <a href="{% url 'create_study_plan' %}" class="btn btn-primary">
-          Create Study Plan
-        </a>
-        <a href="{% url 'logout' %}" class="btn btn-secondary">
-          Logout
+        <a href="{% url 'profile' %}" class="btn btn-settings">
+          Settings
         </a>
       </div>
     </header>
@@ -53,14 +47,14 @@
         <div class="stat-label">Study Plans</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">🔥</span>
-        <div class="stat-value">{{ user.login_streak }}</div>
-        <div class="stat-label">Day Streak</div>
+        <span class="stat-icon">⭐</span>
+        <div class="stat-value">{{ user.total_points }}</div>
+        <div class="stat-label">Points</div>
       </div>
-      <div class="stat-card">
-        <span class="stat-icon">⏱️</span>
-        <div class="stat-value">{{ user.get_app_time_formatted }}</div>
-        <div class="stat-label">Time on App</div>
+      <div class="stat-card" onclick="window.location.href='{% url 'leaderboard' %}'" style="cursor: pointer;">
+        <span class="stat-icon">🏆</span>
+        <div class="stat-value">#{{ user_rank }}</div>
+        <div class="stat-label">Ranking</div>
       </div>
     </div>
 
@@ -95,7 +89,7 @@
           
           <div class="plan-actions-home">
             <a href="{% url 'study_plan_progress' plan.id %}" class="plan-btn btn-resources-home">
-              <span class="btn-icon">�</span>
+              <span class="btn-icon"></span>
               <span>Progress</span>
             </a>
             <a href="{% url 'edit_study_plan' plan.id %}" class="plan-btn btn-edit-home">
@@ -105,110 +99,6 @@
           </div>
         </div>
         {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if recommendations %}
-    <!-- AI-Powered Recommendations -->
-    <div class="ai-recommendations">
-      <div class="ai-header">
-        <h2>Your Personalized Learning Plan</h2>
-        <p>AI-powered recommendations tailored to your goals</p>
-      </div>
-
-      <div class="recommendations-grid">
-        <!-- Study Techniques -->
-        <div class="recommendation-card">
-          <h3>Recommended Study Techniques</h3>
-          <ul class="technique-list">
-            {% for technique in recommendations.study_techniques %}
-              <li>{{ technique }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-
-        <!-- Resources - PROMINENT SECTION -->
-        <div class="recommendation-card card-resources-featured">
-          <h3>Curated Learning Resources</h3>
-          <p class="resources-subtitle">Click to start learning instantly!</p>
-          <div class="resources-list-featured">
-            {% for resource in recommendations.recommended_resources %}
-              <a href="{{ resource.url|default:'#' }}" target="_blank" class="resource-card-clickable">
-                <div class="resource-card-content">
-                  <div class="resource-card-header-inline">
-                    <span class="resource-badge-large badge-{{ resource.type }}">
-                      {% if resource.type == "video" %}Video
-                      {% elif resource.type == "article" %}Article
-                      {% elif resource.type == "practice" %}Practice
-                      {% else %}{{ resource.type|title }}
-                      {% endif %}
-                    </span>
-                    {% if resource.platform %}
-                      <span class="resource-platform-large">{{ resource.platform }}</span>
-                    {% endif %}
-                  </div>
-                  <h4 class="resource-title-large">{{ resource.title }}</h4>
-                  <p class="resource-desc-large">{{ resource.description|truncatewords:15 }}</p>
-                  <div class="resource-cta-bar">
-                    <span class="cta-text">Open Resource</span>
-                    <span class="cta-arrow">→</span>
-                  </div>
-                </div>
-              </a>
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- Time Allocation -->
-        <div class="recommendation-card">
-          <h3>Suggested Study Schedule</h3>
-          <div class="time-allocation">
-            <div class="time-main">
-              <span class="time-value">{{ recommendations.time_allocation.daily_minutes }}</span>
-              <span class="time-label">minutes/day</span>
-            </div>
-            <div class="time-breakdown">
-              <div class="breakdown-item">
-                <span class="breakdown-label">Theory:</span>
-                <span class="breakdown-value">{{ recommendations.time_allocation.breakdown.theory }}%</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">Practice:</span>
-                <span class="breakdown-value">{{ recommendations.time_allocation.breakdown.practice }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Milestones -->
-        <div class="recommendation-card">
-          <h3>🎯 Learning Milestones</h3>
-          <ul class="milestone-list">
-            {% for milestone in recommendations.milestones %}
-              <li><span class="milestone-icon">✓</span> {{ milestone }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-
-        <!-- Tips -->
-        <div class="recommendation-card card-highlight">
-          <h3>💡 Pro Learning Tips</h3>
-          <ul class="tips-list">
-            {% for tip in recommendations.tips %}
-              <li>{{ tip }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-
-        <!-- User Goals -->
-        <div class="recommendation-card card-goals">
-          <h3>🎯 Your Learning Goals</h3>
-          <p class="goals-text">{{ user.goals }}</p>
-          <div class="goals-action">
-            <span class="goals-reminder">Keep these in mind as you create study plans!</span>
-          </div>
-        </div>
       </div>
     </div>
     {% endif %}

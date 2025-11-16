@@ -117,6 +117,16 @@
                                 </div>
                             </div>
 
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.is_public }}
+                                    <label class="form-check-label" for="{{ form.is_public.id_for_label }}">
+                                        Make this quiz public to users in the same category
+                                    </label>
+                                    <small class="form-text text-muted d-block">Users studying the same topic category will be able to take this quiz and earn 0.75-1 points per correct answer</small>
+                                </div>
+                            </div>
+
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-save"></i> Create Quiz & Add Questions

@@ -31,32 +31,32 @@
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon purple">
-                    <i class="fas fa-clock"></i>
+                <div class="stat-icon orange">
+                    <i class="fas fa-star"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>{{ total_hours|floatformat:0 }}</h3>
-                    <p>Hours Studied</p>
+                    <h3>{{ user_points }}</h3>
+                    <p>Current Points</p>
                 </div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon teal">
-                    <i class="fas fa-check-circle"></i>
+                <div class="stat-icon indigo">
+                    <i class="fas fa-trophy"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>{{ total_resources }}</h3>
-                    <p>Resources Completed</p>
+                    <h3>#{{ user_rank }}</h3>
+                    <p>Global Ranking</p>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon green">
-                    <i class="fas fa-graduation-cap"></i>
+            <div class="stat-card" onclick="window.location.href='{% url 'leaderboard' %}'" style="cursor: pointer;">
+                <div class="stat-icon violet">
+                    <i class="fas fa-crown"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>{{ completed_plans }}</h3>
-                    <p>Plans Completed</p>
+                    <h3>View</h3>
+                    <p>Leaderboard</p>
                 </div>
             </div>
         </div>

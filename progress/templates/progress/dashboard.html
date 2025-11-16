@@ -70,6 +70,36 @@
                     <p>Resources Completed</p>
                 </div>
             </div>
+
+            <div class="stat-card">
+                <div class="stat-icon gold">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ user_points }}</h3>
+                    <p>Total Points</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon indigo">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>#{{ user_rank }}</h3>
+                    <p>Global Rank</p>
+                </div>
+            </div>
+
+            <div class="stat-card leaderboard-link" onclick="window.location.href='{% url 'leaderboard' %}'" style="cursor: pointer;">
+                <div class="stat-icon violet">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>View</h3>
+                    <p>Leaderboard</p>
+                </div>
+            </div>
         </div>
 
         <!-- Study Plans Progress -->

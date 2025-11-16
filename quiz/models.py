@@ -18,7 +18,7 @@ class Quiz(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     study_plan = models.ForeignKey(StudyPlan, on_delete=models.CASCADE, related_name='quizzes', null=True, blank=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_quizzes')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_quizzes', null=True, blank=True)
     difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     total_questions = models.IntegerField(default=0)
@@ -28,6 +28,7 @@ class Quiz(models.Model):
     show_correct_answers = models.BooleanField(default=True)
     allow_retake = models.BooleanField(default=True)
     max_attempts = models.IntegerField(null=True, blank=True)
+    is_public = models.BooleanField(default=False, help_text="Make quiz available to users with same topic category")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -88,6 +89,7 @@ class QuizAttempt(models.Model):
     answers_count = models.IntegerField(default=0)
     correct_answers = models.IntegerField(default=0)
     attempt_number = models.IntegerField(default=1)
+    points_earned = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Points earned in this attempt")
     
     class Meta:
         db_table = 'quiz_attempt'
