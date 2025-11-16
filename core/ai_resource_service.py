@@ -6,7 +6,7 @@ import random
 
 def get_openrouter_client():
     """Initialize OpenRouter client for DeepSeek API"""
-    api_key = os.getenv("KEY")
+    api_key = os.getenv("OPEN_ROUTER_API_KEY")
     if not api_key:
         raise ValueError("OpenRouter API key not found in environment variables")
     return OpenAI(
