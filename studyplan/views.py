@@ -70,7 +70,7 @@ def create_study_plan(request):
                 quiz_data = QuizGenerationService.generate_quiz(
                     topic=study_plan.title,
                     difficulty="medium",
-                    num_questions=10
+                    num_questions=3
                 )
                 
                 # Create the quiz WITHOUT created_by so it appears in Available Quizzes

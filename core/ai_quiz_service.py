@@ -20,7 +20,7 @@ def get_openrouter_client():
 
 
 class QuizGenerationService:
-    """Service for generating quizzes using DeepSeek AI via OpenRouter"""
+    """Service for generating quizzes using AI via OpenRouter"""
     
     # Fun loading messages
     LOADING_MESSAGES = [
@@ -37,8 +37,8 @@ class QuizGenerationService:
     ]
     
     @staticmethod
-    def generate_quiz(topic, difficulty="medium", num_questions=5):
-        """Generate quiz using OpenRouter API with DeepSeek"""
+    def generate_quiz(topic, difficulty="medium", num_questions=3):
+        """Generate quiz using OpenRouter API"""
         
         # Show fun loading message
         loading_msg = random.choice(QuizGenerationService.LOADING_MESSAGES)
