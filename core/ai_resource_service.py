@@ -166,13 +166,19 @@ Generate {limit} diverse, high-quality resources now:"""
             # Call DeepSeek API via OpenRouter
             print(f"🤖 Calling DeepSeek AI for resource generation...")
             response = client.chat.completions.create(
-                model="deepseek/deepseek-chat-v3.1:free",
+                model="openrouter/sherlock-think-alpha",
                 messages=[
                     {
                         "role": "user",
                         "content": prompt
                     }
-                ]
+                ],
+                extra_body={
+                    "reasoning": {"enabled": True},
+                    "provider": {
+                        "sort": "throughput"
+                    }
+                }
             )
             
             # Extract the response

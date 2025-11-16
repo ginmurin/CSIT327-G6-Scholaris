@@ -97,11 +97,17 @@ class QuizGenerationService:
             
             # Make API call with timeout
             response = client.chat.completions.create(
-                model="deepseek/deepseek-chat-v3.1:free",
+                model="openrouter/sherlock-think-alpha",
                 messages=messages,
                 temperature=0.3,
                 max_tokens=4000,
-                timeout=60.0  # 60 second timeout for API call
+                timeout=60.0,  # 60 second timeout for API call
+                extra_body={
+                    "reasoning": {"enabled": True},
+                    "provider": {
+                        "sort": "throughput"
+                    }
+                }
             )
             
             print("📥 Receiving quiz data...")
