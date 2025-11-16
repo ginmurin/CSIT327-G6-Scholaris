@@ -22,6 +22,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # ALLOWED_HOSTS - Use environment variable
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
 
+# Add Render domain to ALLOWED_HOSTS
+if 'csit327-g6-scholaris.onrender.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('csit327-g6-scholaris.onrender.com')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
