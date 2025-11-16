@@ -42,7 +42,7 @@ class ResourceGenerationService:
         return random.choice(ResourceGenerationService.LOADING_MESSAGES)
     
     @staticmethod
-    def generate_resources(topic, resource_type="all", context=None, topic_category=None, limit=7):
+    def generate_resources(topic, resource_type="all", context=None, topic_category=None, limit=5):
         """
         Generate learning resources using DeepSeek AI
         
@@ -51,13 +51,17 @@ class ResourceGenerationService:
             resource_type: Type of resources (all, video, article, etc.)
             context: Additional context about the study plan
             topic_category: Category of the topic for better recommendations
-            limit: Number of resources to generate (default 7)
+            limit: Number of resources to generate (min: 3, max: 6, default: 5)
         
         Returns:
             List of resource dictionaries with title, url, type, description, etc.
         """
+        # Validate and clamp limit between 3 and 6
+        limit = max(3, min(6, limit))
+        
         # Show random fun loading message
         print(f"\n{ResourceGenerationService.get_loading_message()}")
+        print(f"📊 Generating {limit} resources for '{topic}'...")
         
         # Build category hint
         category_hint = ""

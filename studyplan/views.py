@@ -236,7 +236,7 @@ def get_resources(request, plan_id):
             resources_data = ResourceGenerationService.generate_resources(
                 topic=study_plan.title,
                 resource_type="all",
-                limit=8,
+                limit=5,
                 context=context,
                 topic_category=study_plan.topic_category
             )
