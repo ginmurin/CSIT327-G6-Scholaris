@@ -24,15 +24,18 @@ class ResourceGenerationService:
         """Generate learning resources using AI"""
         limit = max(3, min(6, int(limit or 5)))
 
-        prompt = f"""Find {limit} learning resources for: {topic}
+        prompt = f"""Generate EXACTLY {limit} learning resources ONLY about "{topic}".
+
+CRITICAL: All resources MUST be directly related to: {topic}
+Do NOT include resources about other topics.
 
 Return ONLY JSON array:
 [
   {{
-    "title": "Resource title",
+    "title": "Resource about {topic}",
     "type": "video",
     "url": "https://direct-url.com",
-    "description": "Brief description",
+    "description": "Learn {topic}",
     "estimated_time": "2h",
     "difficulty": "beginner",
     "platform": "YouTube",
@@ -41,10 +44,9 @@ Return ONLY JSON array:
 ]
 
 Requirements:
-- Direct URLs only (no search pages)
+- Direct URLs only
 - Mix types: video, article, course
-- Popular platforms
-- Resources must be about {topic}"""
+- Topic: {topic} ONLY"""
 
         try:
             client = get_openrouter_client()
@@ -52,7 +54,7 @@ Requirements:
             response = client.chat.completions.create(
                 model="openrouter/sherlock-dash-alpha",
                 messages=[
-                    {"role": "system", "content": "Output only valid JSON array. No text."},
+                    {"role": "system", "content": f"Generate learning resources ONLY about {topic}. Output valid JSON array only."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2,
@@ -85,8 +87,24 @@ Requirements:
             if not isinstance(resources, list):
                 raise ValueError("AI response is not a JSON list")
 
-            # Filter valid resources
-            cleaned = [r for r in resources if isinstance(r, dict) and "title" in r and "url" in r]
+            # Filter valid resources and check if they match the topic
+            cleaned = []
+            topic_lower = topic.lower()
+            for r in resources:
+                if not isinstance(r, dict) or "title" not in r or "url" not in r:
+                    continue
+                # Basic topic validation - check if topic keywords appear in title or description
+                title_lower = r.get("title", "").lower()
+                desc_lower = r.get("description", "").lower()
+                # Skip if resource seems unrelated to the topic
+                if topic_lower not in title_lower and topic_lower not in desc_lower:
+                    # Check for major keywords from topic
+                    topic_words = set(topic_lower.split())
+                    title_words = set(title_lower.split())
+                    # If no overlap in main words, skip
+                    if not topic_words.intersection(title_words):
+                        continue
+                cleaned.append(r)
 
             if not cleaned:
                 raise ValueError("No valid resources after cleaning")
