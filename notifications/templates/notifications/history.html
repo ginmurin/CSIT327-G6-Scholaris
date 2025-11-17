@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Notification History</h2>
+<ul>
+  {% for notification in notifications %}
+    <li>
+      <strong>{{ notification.created_at|date:"M d, Y H:i" }}</strong> - 
+      {{ notification.message }}
+      {% if not notification.is_read %}
+        <span style="color:red;">(New)</span>
+      {% endif %}
+    </li>
+  {% empty %}
+    <li>No notifications yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
