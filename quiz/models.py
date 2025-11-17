@@ -22,7 +22,7 @@ class Quiz(models.Model):
     difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     total_questions = models.IntegerField(default=0)
-    passing_score = models.IntegerField(default=70, help_text="Passing score percentage")
+    passing_score = models.IntegerField(default=60, help_text="Passing score percentage")
     time_limit = models.IntegerField(null=True, blank=True, help_text="Time limit in minutes")
     shuffle_questions = models.BooleanField(default=False)
     show_correct_answers = models.BooleanField(default=True)

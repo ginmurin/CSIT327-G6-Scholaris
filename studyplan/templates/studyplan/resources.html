@@ -434,6 +434,10 @@
     <div class="actions">
       <a href="{% url 'list_study_plans' %}" class="btn btn-secondary">← Back to Study Plans</a>
       <a href="{% url 'edit_study_plan' study_plan.id %}" class="btn btn-primary">Edit Study Plan</a>
+      <form method="post" action="{% url 'delete_study_plan' study_plan.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this study plan? This action cannot be undone.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete Study Plan</button>
+      </form>
     </div>
   </div>
 
