@@ -164,6 +164,25 @@ body::before {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
+/* ✅ Admin switch button (matches UI) */
+.btn-admin-switch {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+  transition: all 0.3s ease;
+}
+
+.btn-admin-switch:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.5);
+  filter: brightness(1.05);
+}
+
 .btn-secondary {
   background: #f1f5f9;
   color: #475569;
@@ -1029,4 +1048,3 @@ body::before {
     font-size: 36px;
   }
 }
-

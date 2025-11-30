@@ -30,14 +30,24 @@ def home(request):
     # Get user's rank
     user_rank = user.current_rank if user.current_rank > 0 else \
                 AppUser.objects.filter(total_points__gt=user.total_points).count() + 1
+
+    # ✅ ADD THIS: detect if user is admin
+    is_admin = (
+        getattr(user, "is_admin", False)
+        or getattr(user, "is_staff", False)
+        or getattr(user, "is_superuser", False)
+    )
+    if hasattr(user, "role"):
+        is_admin = (str(user.role).lower() == "admin")
     
-    # NO AI - just show the dashboard with user data
+    # Show dashboard with user data + admin flag
     return render(request, "authentication/home.html", {
         "name": request.session.get("app_user_name") or "User",
         "user": user,
         "study_plans": study_plans,
         "study_plan_count": study_plan_count,
-        "user_rank": user_rank
+        "user_rank": user_rank,
+        "is_admin": is_admin,   # ✅ PASS TO TEMPLATE
     })
 
 urlpatterns = [
@@ -47,6 +57,8 @@ urlpatterns = [
     path("study-plans/", include("studyplan.urls")),
     path("progress/", include("progress.urls")),
     path("quiz/", include("quiz.urls")),
+
+    path("panel/", include(("admin_page.urls", "admin_page"), namespace="admin_page")),
 ]
 
 # Serve media files in development

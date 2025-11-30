@@ -1,0 +1,149 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scholaris Admin Panel</title>
+  <link rel="stylesheet" href="{% static 'admin/css/home.css' %}">
+</head>
+<body>
+
+  <div class="page-bg">
+    <div class="container">
+
+      <!-- TOP BAR -->
+      <header class="top-card">
+        <div class="top-left">
+          <div class="avatar"></div>
+          <div>
+            <h1>Admin Dashboard</h1>
+            <p>Manage users, study plans, progress, and quizzes.</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <a href="{% url 'home' %}" class="btn-light">Go to User View</a>
+          <a href="#" class="btn-outline">Settings</a>
+        </div>
+      </header>
+
+
+      <!-- STATS -->
+      <section class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon">👤</div>
+          <div class="stat-number">{{ user_count }}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-number">{{ plan_count }}</div>
+          <div class="stat-label">Study Plans</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-number">{{ active_count }}</div>
+          <div class="stat-label">Active Plans</div>
+        </div>
+      </section>
+
+
+      <!-- QUICK ACTIONS -->
+      <section class="quick-row">
+        <a class="quick-card" href="{% url 'list_study_plans' %}">
+          <div class="quick-emoji">📘</div>
+          <h3>Manage Study Plans</h3>
+          <p>View, edit, activate, or archive plans.</p>
+        </a>
+
+        <a class="quick-card" href="#">
+          <div class="quick-emoji">🧑‍🎓</div>
+          <h3>Manage Users</h3>
+          <p>Promote admins, reset users, or ban accounts.</p>
+        </a>
+
+        <!-- ✅ FIXED: no reverse, safe link -->
+        <a class="quick-card" href="/quiz/">
+          <div class="quick-emoji">📝</div>
+          <h3>Manage Quizzes</h3>
+          <p>Create AI quizzes and review results.</p>
+        </a>
+      </section>
+
+
+      <!-- RECENT USERS -->
+      <section class="white-card">
+        <div class="card-header">
+          <h2>Recent Users</h2>
+          <a class="link-soft" href="#">View all →</a>
+        </div>
+
+        <div class="table">
+          <div class="table-row table-head">
+            <div>User</div>
+            <div>Email</div>
+            <div>Points</div>
+            <div>Action</div>
+          </div>
+
+          {% for u in recent_users %}
+          <div class="table-row">
+            <div class="user-cell">
+              <span class="mini-avatar"></span>
+              <span>{{ u.username }}</span>
+            </div>
+            <div>{{ u.email }}</div>
+            <div>{{ u.total_points }}</div>
+            <div class="actions">
+              <a href="#" class="btn-mini">View</a>
+              <a href="#" class="btn-mini danger">Ban</a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="muted">No users yet.</div>
+          {% endfor %}
+        </div>
+      </section>
+
+
+      <!-- RECENT PLANS -->
+      <section class="white-card">
+        <div class="card-header">
+          <h2>Recent Study Plans</h2>
+          <a class="link-soft" href="{% url 'list_study_plans' %}">View all →</a>
+        </div>
+
+        <div class="plans-grid">
+          {% for p in recent_plans %}
+          <article class="plan-item">
+            <div class="plan-title-row">
+              <h3>{{ p.title }}</h3>
+
+              {% if p.status|lower == "active" %}
+                <span class="badge active">ACTIVE</span>
+              {% else %}
+                <span class="badge inactive">{{ p.status|upper }}</span>
+              {% endif %}
+
+            </div>
+            <p class="plan-subtitle">Owner: {{ p.user.username }}</p>
+
+            <div class="plan-actions">
+              <a href="{% url 'study_plan_progress' p.id %}" class="btn-primary">Open</a>
+              <a href="{% url 'edit_study_plan' p.id %}" class="btn-light">Edit</a>
+            </div>
+          </article>
+          {% empty %}
+            <p class="muted">No study plans yet.</p>
+          {% endfor %}
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</body>
+</html>

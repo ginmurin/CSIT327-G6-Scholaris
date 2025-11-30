@@ -6,7 +6,8 @@ tzdata==2025.2
 
 # Database
 dj-database-url==3.0.1
-psycopg2==2.9.10
+psycopg2-binary==2.9.10
+
 
 # Supabase Storage (main package installs all dependencies)
 supabase==2.11.0

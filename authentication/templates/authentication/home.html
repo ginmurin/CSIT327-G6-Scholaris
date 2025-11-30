@@ -32,10 +32,17 @@
           <p>Ready to continue your journey?</p>
         </div>
       </div>
+
       <div class="header-actions">
         <a href="{% url 'profile' %}" class="btn btn-settings">
           Settings
         </a>
+
+        {% if is_admin %}
+          <a href="/panel/home/" class="btn btn-admin-switch">
+            Admin View
+          </a>
+        {% endif %}
       </div>
     </header>
 
@@ -51,11 +58,18 @@
         <div class="stat-value">{{ user.total_points }}</div>
         <div class="stat-label">Points</div>
       </div>
-      <div class="stat-card" onclick="window.location.href='{% url 'leaderboard' %}'" style="cursor: pointer;">
-        <span class="stat-icon">🏆</span>
-        <div class="stat-value">#{{ user_rank }}</div>
-        <div class="stat-label">Ranking</div>
-      </div>
+   <a href="{% url 'leaderboard' %}" style="text-decoration:none; color:inherit;">
+  <div class="stat-card" style="cursor:pointer;">
+    <span class="stat-icon">🏆</span>
+    <div class="stat-value">#{{ user_rank }}</div>
+    <div class="stat-label">Ranking</div>
+  </div>
+</a>
+
+
+</div>
+
+
     </div>
 
     <!-- My Study Plans Section -->
@@ -126,3 +140,4 @@
   </div>
 </body>
 </html>
+<!doctype html>
