@@ -24,46 +24,46 @@ class ResourceGenerationService:
         """Generate learning resources using AI"""
         limit = max(3, min(6, int(limit or 5)))
 
-        prompt = f"""Generate EXACTLY {limit} learning resources ONLY about "{topic}".
+        prompt = f"""Generate EXACTLY {limit} high-quality learning resources about "{topic}".
 
-CRITICAL: All resources MUST be directly related to: {topic}
-Do NOT include resources about other topics.
+You MUST return ONLY a valid JSON array with NO additional text, explanations, or markdown formatting.
 
-Return ONLY JSON array:
+Format (return THIS EXACT structure):
 [
   {{
-    "title": "Resource about {topic}",
+    "title": "Introduction to {topic}",
     "type": "video",
-    "url": "https://direct-url.com",
-    "description": "Learn {topic}",
-    "estimated_time": "2h",
+    "url": "https://www.youtube.com/watch?v=example",
+    "description": "Learn the fundamentals of {topic}",
+    "estimated_time": "15 minutes",
     "difficulty": "beginner",
     "platform": "YouTube",
     "is_free": true
   }}
 ]
 
-Requirements:
-- Direct URLs only
-- Mix types: video, article, course
-- Topic: {topic} ONLY"""
+Rules:
+1. Generate REAL, specific resources about {topic}
+2. Use actual educational platforms (YouTube, Coursera, Khan Academy, MDN, freeCodeCamp, etc.)
+3. Types can be: "video", "article", "course", "tutorial", "documentation"
+4. Difficulty: "beginner", "intermediate", or "advanced"
+5. All resources must be free (is_free: true)
+6. Return ONLY the JSON array, nothing else
+
+Generate {limit} resources now:"""
 
         try:
             client = get_openrouter_client()
 
             response = client.chat.completions.create(
-                model="google/gemma-3n-e4b-it:free",
+                model="meta-llama/llama-3.2-3b-instruct:free",
                 messages=[
-                    {"role": "system", "content": f"Generate learning resources ONLY about {topic}. Output valid JSON array only."},
+                    {"role": "system", "content": f"You are a helpful assistant that generates learning resources. Output ONLY valid JSON array with no additional text."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.2,
-                max_tokens=400,
-                timeout=ResourceGenerationService.AI_TIMEOUT_SECONDS,
-                extra_body={
-                    "reasoning": {"enabled": False},
-                    "provider": {"sort": "throughput"}
-                }
+                temperature=0.3,
+                max_tokens=2000,
+                timeout=30.0
             )
 
             result_text = (response.choices[0].message.content or "").strip()
