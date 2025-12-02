@@ -100,14 +100,8 @@ class QuizGenerationService:
                 model="meta-llama/llama-3.2-3b-instruct:free",
                 messages=messages,
                 temperature=0.3,
-                max_tokens=4000,
-                timeout=60.0,  # 60 second timeout for API call
-                extra_body={
-                    "reasoning": {"enabled": True},
-                    "provider": {
-                        "sort": "throughput"
-                    }
-                }
+                max_tokens=2000,
+                timeout=25.0  # 25 second timeout for faster response
             )
             
             print("📥 Receiving quiz data...")
