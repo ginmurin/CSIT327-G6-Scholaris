@@ -52,7 +52,7 @@ Requirements:
             client = get_openrouter_client()
 
             response = client.chat.completions.create(
-                model="openrouter/sherlock-dash-alpha",
+                model="google/gemma-3n-e4b-it:free",
                 messages=[
                     {"role": "system", "content": f"Generate learning resources ONLY about {topic}. Output valid JSON array only."},
                     {"role": "user", "content": prompt}
