@@ -132,7 +132,7 @@
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-save"></i> Create Quiz & Add Questions
                                 </button>
-                                <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">
+                                <a href="{% url 'quiz_list' %}{% if selected_study_plan %}?study_plan={{ selected_study_plan.id }}{% endif %}" class="btn btn-outline-secondary">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>

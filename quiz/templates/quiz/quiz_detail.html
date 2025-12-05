@@ -13,7 +13,7 @@
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">📚 Scholaris</a>
             <div class="navbar-nav ms-auto">
-                <a href="{% url 'quiz_list' %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
+                <a href="{% url 'quiz_list' %}{% if selected_study_plan %}?study_plan={{ selected_study_plan.id }}{% endif %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
             </div>
         </div>
     </nav>

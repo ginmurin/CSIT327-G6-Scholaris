@@ -107,7 +107,7 @@
                             <i class="fas fa-paper-plane"></i> Submit Quiz
                         </button>
                         {% if not is_ai_quiz %}
-                            <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'quiz_detail' quiz.id %}{% if quiz.study_plan %}?study_plan={{ quiz.study_plan.id }}{% endif %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         {% endif %}

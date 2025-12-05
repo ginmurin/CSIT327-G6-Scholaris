@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
+from django.urls import reverse
 from decimal import Decimal
 from .models import Quiz, Question, QuestionOption, QuizAttempt, Answer
 from .forms import QuizForm, QuestionForm
@@ -28,6 +29,13 @@ def update_user_rankings():
         user.save(update_fields=['current_rank'])
 
 
+def get_quiz_list_url(quiz):
+    """Helper function to build quiz_list URL with study_plan parameter if applicable"""
+    if quiz and quiz.study_plan:
+        return f"/quiz/?study_plan={quiz.study_plan.id}"
+    return "/quiz/"
+
+
 @require_login
 def quiz_list(request):
     """Display all quizzes for the logged-in user including public quizzes from same categories"""
@@ -44,18 +52,8 @@ def quiz_list(request):
             # Get quizzes for this specific study plan
             my_quizzes = Quiz.objects.filter(created_by=user, study_plan=selected_study_plan)
             
-            # Available quizzes: AI-generated + public quizzes from same category
-            ai_quizzes = Quiz.objects.filter(study_plan=selected_study_plan, created_by=None)
-            
-            # Get public quizzes from other users with same topic category
-            public_quizzes = Quiz.objects.filter(
-                is_public=True,
-                status='published',
-                study_plan__topic_category=selected_study_plan.topic_category
-            ).exclude(created_by=user).exclude(created_by=None)
-            
-            # Combine AI and public quizzes
-            study_plan_quizzes = list(ai_quizzes) + list(public_quizzes)
+            # Available quizzes: ONLY AI-generated quizzes for this specific study plan
+            study_plan_quizzes = Quiz.objects.filter(study_plan=selected_study_plan, created_by=None)
             
         except StudyPlan.DoesNotExist:
             my_quizzes = Quiz.objects.filter(created_by=user)
@@ -118,7 +116,10 @@ def create_quiz(request):
             quiz.status = 'draft'
             quiz.save()
             messages.success(request, f'Quiz "{quiz.title}" created! Now add questions.')
-            return redirect('add_question_custom', quiz_id=quiz.id)
+            url = reverse('add_question_custom', kwargs={'quiz_id': quiz.id})
+            if quiz.study_plan:
+                url += f'?study_plan={quiz.study_plan.id}'
+            return redirect(url)
     else:
         # Pre-fill study plan if provided in URL
         if initial_study_plan:
@@ -178,9 +179,15 @@ def add_question(request, quiz_id):
                 
                 # Check if user wants to add more questions
                 if 'add_another' in request.POST:
-                    return redirect('add_question', quiz_id=quiz.id)
+                    url = reverse('add_question', kwargs={'quiz_id': quiz.id})
+                    if quiz.study_plan:
+                        url += f'?study_plan={quiz.study_plan.id}'
+                    return redirect(url)
                 else:
-                    return redirect('quiz_detail', quiz_id=quiz.id)
+                    url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+                    if quiz.study_plan:
+                        url += f'?study_plan={quiz.study_plan.id}'
+                    return redirect(url)
     else:
         form = QuestionForm()
     
@@ -261,9 +268,15 @@ def add_question_custom(request, quiz_id):
             
             # Check if user wants to add more questions
             if request.POST.get('action') == 'add_another':
-                return redirect('add_question_custom', quiz_id=quiz.id)
+                url = reverse('add_question_custom', kwargs={'quiz_id': quiz.id})
+                if quiz.study_plan:
+                    url += f'?study_plan={quiz.study_plan.id}'
+                return redirect(url)
             else:
-                return redirect('quiz_detail', quiz_id=quiz.id)
+                url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+                if quiz.study_plan:
+                    url += f'?study_plan={quiz.study_plan.id}'
+                return redirect(url)
     
     return render(request, 'quiz/add_question_custom.html', {
         'quiz': quiz,
@@ -310,6 +323,7 @@ def quiz_detail(request, quiz_id):
         'is_other_user_quiz': is_other_user_quiz,
         'has_taken_quiz': has_taken_quiz,
         'attempts': attempts,
+        'selected_study_plan': quiz.study_plan,
         'name': request.session.get("app_user_name", "User")
     })
 
@@ -347,7 +361,10 @@ def edit_question(request, question_id):
                     option.save()
                 
                 messages.success(request, 'Question updated successfully!')
-                return redirect('quiz_detail', quiz_id=question.quiz.id)
+                url = reverse('quiz_detail', kwargs={'quiz_id': question.quiz.id})
+                if question.quiz.study_plan:
+                    url += f'?study_plan={question.quiz.study_plan.id}'
+                return redirect(url)
     else:
         # Pre-fill form with existing data
         initial_data = {
@@ -380,7 +397,10 @@ def delete_question(request, question_id):
         quiz.total_questions = quiz.questions.count()
         quiz.save()
         messages.success(request, 'Question deleted successfully!')
-        return redirect('quiz_detail', quiz_id=quiz.id)
+        url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+        if quiz.study_plan:
+            url += f'?study_plan={quiz.study_plan.id}'
+        return redirect(url)
     
     return render(request, 'quiz/delete_question.html', {
         'question': question,
@@ -401,8 +421,11 @@ def delete_quiz(request, quiz_id):
         return redirect('quiz_detail', quiz_id=quiz.id)
     
     if request.method == 'POST':
+        study_plan_id = quiz.study_plan.id if quiz.study_plan else None
         quiz.delete()
         messages.success(request, 'Quiz deleted successfully!')
+        if study_plan_id:
+            return redirect(f'/quiz/?study_plan={study_plan_id}')
         return redirect('quiz_list')
     
     return redirect('quiz_detail', quiz_id=quiz.id)
@@ -417,7 +440,10 @@ def publish_quiz(request, quiz_id):
     
     if quiz.questions.count() == 0:
         messages.error(request, 'Cannot make quiz public without questions!')
-        return redirect('quiz_detail', quiz_id=quiz.id)
+        url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+        if quiz.study_plan:
+            url += f'?study_plan={quiz.study_plan.id}'
+        return redirect(url)
     
     # Toggle is_public status and publish the quiz
     quiz.is_public = not quiz.is_public
@@ -432,7 +458,10 @@ def publish_quiz(request, quiz_id):
         messages.success(request, f'Quiz "{quiz.title}" is now private!')
     
     quiz.save()
-    return redirect('quiz_detail', quiz_id=quiz.id)
+    url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+    if quiz.study_plan:
+        url += f'?study_plan={quiz.study_plan.id}'
+    return redirect(url)
 
 
 @require_login
@@ -445,6 +474,8 @@ def take_quiz(request, quiz_id):
     # Check if quiz is published
     if quiz.status != 'published':
         messages.error(request, 'This quiz is not published yet!')
+        if quiz.study_plan:
+            return redirect(f'/quiz/?study_plan={quiz.study_plan.id}')
         return redirect('quiz_list')
     
     # Check completed attempts only (ignore incomplete/abandoned attempts)
@@ -457,12 +488,18 @@ def take_quiz(request, quiz_id):
     # AI-generated quizzes (created_by is None) only allow one attempt
     if quiz.created_by is None and completed_attempts_count >= 1:
         messages.error(request, 'You have already completed this AI-generated quiz!')
-        return redirect('quiz_detail', quiz_id=quiz.id)
+        url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+        if quiz.study_plan:
+            url += f'?study_plan={quiz.study_plan.id}'
+        return redirect(url)
     
     # User-created quizzes: check allow_review setting
     if quiz.created_by is not None and not quiz.allow_review and completed_attempts_count >= 1:
         messages.error(request, 'This quiz does not allow retakes!')
-        return redirect('quiz_detail', quiz_id=quiz.id)
+        url = reverse('quiz_detail', kwargs={'quiz_id': quiz.id})
+        if quiz.study_plan:
+            url += f'?study_plan={quiz.study_plan.id}'
+        return redirect(url)
     
     # Create new attempt
     attempt = QuizAttempt.objects.create(
@@ -487,6 +524,7 @@ def take_quiz(request, quiz_id):
         'attempt': attempt,
         'questions': questions,
         'is_ai_quiz': is_ai_quiz,
+        'selected_study_plan': quiz.study_plan,
         'name': request.session.get("app_user_name", "User")
     })
 
@@ -643,6 +681,7 @@ def quiz_result(request, attempt_id):
         'attempt': attempt,
         'results': results,
         'is_ai_quiz': is_ai_quiz,
+        'selected_study_plan': attempt.quiz.study_plan,
         'name': request.session.get("app_user_name", "User")
     })
 
