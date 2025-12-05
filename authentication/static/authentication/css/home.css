@@ -195,7 +195,7 @@ body::before {
 /* Quick Stats */
 .quick-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   margin-bottom: 30px;
   animation: fadeIn 0.8s ease-out 0.2s both;
@@ -253,7 +253,7 @@ body::before {
 /* Action Cards */
 .action-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   animation: fadeIn 1s ease-out 0.4s both;
 }
@@ -714,7 +714,7 @@ body::before {
 
 .study-plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 

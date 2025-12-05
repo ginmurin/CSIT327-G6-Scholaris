@@ -119,16 +119,16 @@
 
     <!-- Action Cards -->
     <div class="action-cards">
-      <a href="{% url 'list_study_plans' %}" class="action-card card-primary">
-        <span class="card-icon">📖</span>
-        <h3 class="card-title">My Study Plans</h3>
-        <p class="card-description">View, edit, and manage all your personalized study plans in one place</p>
-      </a>
-      
-      <a href="{% url 'create_study_plan' %}" class="action-card">
+      <a href="{% url 'create_study_plan' %}" class="action-card card-primary">
         <span class="card-icon">➕</span>
         <h3 class="card-title">Create New Plan</h3>
         <p class="card-description">Design a custom study plan tailored to your learning goals and schedule</p>
+      </a>
+      
+      <a href="{% url 'list_study_plans' %}" class="action-card">
+        <span class="card-icon">📖</span>
+        <h3 class="card-title">My Study Plans</h3>
+        <p class="card-description">View, edit, and manage all your personalized study plans in one place</p>
       </a>
       
       <a href="{% url 'logout' %}" class="action-card card-logout">

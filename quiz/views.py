@@ -64,11 +64,11 @@ def quiz_list(request):
         # Get all quizzes created by user
         my_quizzes = Quiz.objects.filter(created_by=user)
         
-        # Get all user's study plans to find relevant public quizzes
+        # Get all user's study plans to find relevant quizzes
         user_study_plans = StudyPlan.objects.filter(user=user)
         user_categories = user_study_plans.values_list('topic_category', flat=True).distinct()
         
-        # Available quizzes: AI-generated from user's study plans + public quizzes from same categories
+        # Available quizzes: AI quizzes from user's study plans + public quizzes from same categories
         ai_quizzes = Quiz.objects.filter(study_plan__user=user, created_by=None)
         
         public_quizzes = Quiz.objects.filter(
@@ -82,9 +82,9 @@ def quiz_list(request):
     # For quizzes, check if user has taken them
     quiz_attempts = {}
     for quiz in study_plan_quizzes:
-        if quiz.created_by is None:  # AI quiz
-            has_taken = QuizAttempt.objects.filter(quiz=quiz, user=user, completed_at__isnull=False).exists()
-            quiz_attempts[quiz.id] = has_taken
+        # Track attempts for ALL quizzes (AI and user-created)
+        has_taken = QuizAttempt.objects.filter(quiz=quiz, user=user, completed_at__isnull=False).exists()
+        quiz_attempts[quiz.id] = has_taken
     
     return render(request, 'quiz/quiz_list.html', {
         'my_quizzes': my_quizzes,
@@ -118,7 +118,7 @@ def create_quiz(request):
             quiz.status = 'draft'
             quiz.save()
             messages.success(request, f'Quiz "{quiz.title}" created! Now add questions.')
-            return redirect('add_question', quiz_id=quiz.id)
+            return redirect('add_question_custom', quiz_id=quiz.id)
     else:
         # Pre-fill study plan if provided in URL
         if initial_study_plan:
@@ -195,6 +195,83 @@ def add_question(request, quiz_id):
 
 
 @require_login
+def add_question_custom(request, quiz_id):
+    """Add custom questions with flexible options (Google Forms style)"""
+    user_id = request.session.get("app_user_id")
+    user = User.objects.get(id=user_id)
+    quiz = get_object_or_404(Quiz, id=quiz_id, created_by=user)
+    
+    if request.method == 'POST':
+        question_text = request.POST.get('question_text')
+        question_type = request.POST.get('question_type', 'multiple_choice')
+        explanation = request.POST.get('explanation', '')
+        
+        if not question_text:
+            messages.error(request, 'Question text is required!')
+            return redirect('add_question_custom', quiz_id=quiz.id)
+        
+        with transaction.atomic():
+            # Create question
+            question = Question.objects.create(
+                quiz=quiz,
+                question_text=question_text,
+                question_type=question_type,
+                explanation=explanation,
+                order=quiz.questions.count() + 1
+            )
+            
+            # Get all options from POST data
+            option_keys = [key for key in request.POST.keys() if key.startswith('option_')]
+            options_created = 0
+            
+            for option_key in option_keys:
+                option_text = request.POST.get(option_key)
+                if option_text:
+                    # Extract option ID from key (e.g., "option_1" -> "1")
+                    option_id = option_key.replace('option_', '')
+                    
+                    # Determine if this option is correct
+                    is_correct = False
+                    if question_type == 'checkboxes':
+                        # Multiple correct answers possible
+                        correct_options = request.POST.getlist('correct_option')
+                        is_correct = option_id in correct_options
+                    elif question_type == 'dropdown':
+                        # Check dropdown select
+                        dropdown_value = request.POST.get(f'correct_option_{option_id}', '0')
+                        is_correct = dropdown_value == '1'
+                    else:
+                        # Single correct answer (multiple_choice)
+                        correct_option = request.POST.get('correct_option')
+                        is_correct = option_id == correct_option
+                    
+                    QuestionOption.objects.create(
+                        question=question,
+                        option_text=option_text,
+                        is_correct=is_correct,
+                        order=options_created
+                    )
+                    options_created += 1
+            
+            # Update quiz total questions
+            quiz.total_questions = quiz.questions.count()
+            quiz.save()
+            
+            messages.success(request, f'Question {question.order} added successfully!')
+            
+            # Check if user wants to add more questions
+            if request.POST.get('action') == 'add_another':
+                return redirect('add_question_custom', quiz_id=quiz.id)
+            else:
+                return redirect('quiz_detail', quiz_id=quiz.id)
+    
+    return render(request, 'quiz/add_question_custom.html', {
+        'quiz': quiz,
+        'name': request.session.get("app_user_name", "User")
+    })
+
+
+@require_login
 def quiz_detail(request, quiz_id):
     """View quiz details and questions"""
     user_id = request.session.get("app_user_id")
@@ -230,6 +307,7 @@ def quiz_detail(request, quiz_id):
         'questions': questions,
         'can_edit': can_edit,
         'is_ai_quiz': is_ai_quiz,
+        'is_other_user_quiz': is_other_user_quiz,
         'has_taken_quiz': has_taken_quiz,
         'attempts': attempts,
         'name': request.session.get("app_user_name", "User")
@@ -332,18 +410,28 @@ def delete_quiz(request, quiz_id):
 
 @require_login
 def publish_quiz(request, quiz_id):
-    """Publish a quiz"""
+    """Toggle quiz public/private status"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
     quiz = get_object_or_404(Quiz, id=quiz_id, created_by=user)
     
     if quiz.questions.count() == 0:
-        messages.error(request, 'Cannot publish a quiz without questions!')
+        messages.error(request, 'Cannot make quiz public without questions!')
         return redirect('quiz_detail', quiz_id=quiz.id)
     
-    quiz.status = 'published'
+    # Toggle is_public status and publish the quiz
+    quiz.is_public = not quiz.is_public
+    
+    if quiz.is_public:
+        # Making public: publish the quiz
+        quiz.status = 'published'
+        messages.success(request, f'Quiz "{quiz.title}" is now public and published!')
+    else:
+        # Making private: keep it as draft
+        quiz.status = 'draft'
+        messages.success(request, f'Quiz "{quiz.title}" is now private!')
+    
     quiz.save()
-    messages.success(request, f'Quiz "{quiz.title}" has been published!')
     return redirect('quiz_detail', quiz_id=quiz.id)
 
 
@@ -359,17 +447,21 @@ def take_quiz(request, quiz_id):
         messages.error(request, 'This quiz is not published yet!')
         return redirect('quiz_list')
     
-    # Check attempts
-    attempts_count = QuizAttempt.objects.filter(quiz=quiz, user=user).count()
+    # Check completed attempts only (ignore incomplete/abandoned attempts)
+    completed_attempts_count = QuizAttempt.objects.filter(
+        quiz=quiz, 
+        user=user, 
+        completed_at__isnull=False
+    ).count()
     
     # AI-generated quizzes (created_by is None) only allow one attempt
-    if quiz.created_by is None and attempts_count >= 1:
+    if quiz.created_by is None and completed_attempts_count >= 1:
         messages.error(request, 'You have already completed this AI-generated quiz!')
         return redirect('quiz_detail', quiz_id=quiz.id)
     
-    # User-created quizzes respect max_attempts setting
-    if quiz.max_attempts and attempts_count >= quiz.max_attempts:
-        messages.error(request, 'You have reached the maximum number of attempts for this quiz!')
+    # User-created quizzes: check allow_review setting
+    if quiz.created_by is not None and not quiz.allow_review and completed_attempts_count >= 1:
+        messages.error(request, 'This quiz does not allow retakes!')
         return redirect('quiz_detail', quiz_id=quiz.id)
     
     # Create new attempt
@@ -377,7 +469,7 @@ def take_quiz(request, quiz_id):
         quiz=quiz,
         user=user,
         study_plan=quiz.study_plan,
-        attempt_number=attempts_count + 1
+        attempt_number=completed_attempts_count + 1
     )
     
     questions = quiz.questions.prefetch_related('options').all()
@@ -412,21 +504,50 @@ def submit_quiz(request, attempt_id):
             total_questions = attempt.quiz.total_questions
             
             for question in attempt.quiz.questions.all():
-                selected_option_id = request.POST.get(f'question_{question.id}')
-                
-                if selected_option_id:
-                    selected_option = QuestionOption.objects.get(id=selected_option_id)
-                    is_correct = selected_option.is_correct
+                # Handle different question types
+                if question.question_type == 'checkboxes':
+                    # Multiple answers possible - get list of selected options
+                    selected_option_ids = request.POST.getlist(f'question_{question.id}')
                     
-                    Answer.objects.create(
-                        question=question,
-                        attempt=attempt,
-                        selected_option=selected_option,
-                        is_correct=is_correct
-                    )
+                    if selected_option_ids:
+                        # Get all correct option IDs for this question
+                        correct_option_ids = set(
+                            question.options.filter(is_correct=True).values_list('id', flat=True)
+                        )
+                        selected_ids_set = set(int(id) for id in selected_option_ids)
+                        
+                        # Check if selected options match correct options exactly
+                        is_correct = selected_ids_set == correct_option_ids
+                        
+                        # Create answer records for each selected option
+                        for option_id in selected_option_ids:
+                            selected_option = QuestionOption.objects.get(id=option_id)
+                            Answer.objects.create(
+                                question=question,
+                                attempt=attempt,
+                                selected_option=selected_option,
+                                is_correct=is_correct  # All or nothing for checkboxes
+                            )
+                        
+                        if is_correct:
+                            correct_count += 1
+                else:
+                    # Single answer (multiple_choice, dropdown, true_false)
+                    selected_option_id = request.POST.get(f'question_{question.id}')
                     
-                    if is_correct:
-                        correct_count += 1
+                    if selected_option_id:
+                        selected_option = QuestionOption.objects.get(id=selected_option_id)
+                        is_correct = selected_option.is_correct
+                        
+                        Answer.objects.create(
+                            question=question,
+                            attempt=attempt,
+                            selected_option=selected_option,
+                            is_correct=is_correct
+                        )
+                        
+                        if is_correct:
+                            correct_count += 1
             
             # Calculate percentage
             if total_questions > 0:
@@ -458,6 +579,9 @@ def submit_quiz(request, attempt_id):
                 update_user_rankings()
                 
                 print(f"🎯 Points awarded: {round(float(points_earned))} points to {user.name} (Quiz: {attempt.quiz.title}, AI: {is_ai_quiz}, Correct: {correct_count})")
+            else:
+                # No points for subsequent attempts
+                attempt.points_earned = Decimal('0')
             
             attempt.save()
             
@@ -481,16 +605,35 @@ def quiz_result(request, attempt_id):
     
     answers = attempt.answers.select_related('question', 'selected_option').all()
     
-    # Group answers with questions and options
+    # Group answers by question (important for checkbox questions with multiple answers)
+    from collections import defaultdict
+    question_answers = defaultdict(list)
+    for answer in answers:
+        question_answers[answer.question.id].append(answer)
+    
+    # Build results with all answers per question
     results = []
+    processed_questions = set()
+    
     for answer in answers:
         question = answer.question
+        if question.id in processed_questions:
+            continue
+        processed_questions.add(question.id)
+        
         options = list(question.options.all())
+        answers_for_question = question_answers[question.id]
+        selected_options = [ans.selected_option for ans in answers_for_question]
+        
+        # For checkbox questions, all Answer records have same is_correct value
+        is_correct = answers_for_question[0].is_correct if answers_for_question else False
+        
         results.append({
             'question': question,
             'options': options,
-            'selected_option': answer.selected_option,
-            'is_correct': answer.is_correct
+            'selected_options': selected_options,  # Now a list
+            'selected_option': selected_options[0] if selected_options else None,  # For backward compatibility
+            'is_correct': is_correct
         })
     
     # Check if it's an AI quiz

@@ -56,7 +56,7 @@ Generate {limit} resources now:"""
             client = get_openrouter_client()
 
             response = client.chat.completions.create(
-                model="meta-llama/llama-3.2-3b-instruct:free",
+                model="meta-llama/llama-3.3-70b-instruct:free",
                 messages=[
                     {"role": "system", "content": f"You are a helpful assistant that generates learning resources. Output ONLY valid JSON array with no additional text."},
                     {"role": "user", "content": prompt}

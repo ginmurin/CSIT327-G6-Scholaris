@@ -5,7 +5,7 @@ class QuizForm(forms.ModelForm):
     class Meta:
         model = Quiz
         fields = ['title', 'description', 'study_plan', 'difficulty', 'passing_score', 
-                  'time_limit', 'shuffle_questions', 'show_correct_answers', 'allow_retake', 'max_attempts', 'is_public']
+                  'time_limit', 'shuffle_questions', 'show_correct_answers', 'allow_review', 'is_public']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -39,13 +39,8 @@ class QuizForm(forms.ModelForm):
             'show_correct_answers': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
-            'allow_retake': forms.CheckboxInput(attrs={
+            'allow_review': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
-            }),
-            'max_attempts': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Maximum attempts (optional)',
-                'min': 1
             }),
             'is_public': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'

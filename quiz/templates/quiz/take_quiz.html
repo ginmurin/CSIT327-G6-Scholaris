@@ -58,20 +58,46 @@
                             <div class="card-body">
                                 <p class="lead">{{ question.question_text }}</p>
                                 
-                                <div class="options">
-                                    {% for option in question.options.all %}
-                                        <div class="form-check question-option p-3 border rounded mb-2">
-                                            <input class="form-check-input" type="radio" 
-                                                   name="question_{{ question.id }}" 
-                                                   id="option_{{ option.id }}" 
-                                                   value="{{ option.id }}"
-                                                   required>
-                                            <label class="form-check-label w-100" for="option_{{ option.id }}">
-                                                <strong>{% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% endif %}.</strong> {{ option.option_text }}
-                                            </label>
-                                        </div>
-                                    {% endfor %}
-                                </div>
+                                {% if question.question_type == 'checkboxes' %}
+                                    <!-- Checkboxes (multiple answers) -->
+                                    <div class="options">
+                                        {% for option in question.options.all %}
+                                            <div class="form-check question-option p-3 border rounded mb-2">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="question_{{ question.id }}" 
+                                                       id="option_{{ option.id }}" 
+                                                       value="{{ option.id }}">
+                                                <label class="form-check-label w-100" for="option_{{ option.id }}">
+                                                    {{ option.option_text }}
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% elif question.question_type == 'dropdown' %}
+                                    <!-- Dropdown -->
+                                    <select name="question_{{ question.id }}" class="form-select form-select-lg" required>
+                                        <option value="">Choose an answer...</option>
+                                        {% for option in question.options.all %}
+                                            <option value="{{ option.id }}">{{ option.option_text }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% else %}
+                                    <!-- Multiple Choice (radio buttons) -->
+                                    <div class="options">
+                                        {% for option in question.options.all %}
+                                            <div class="form-check question-option p-3 border rounded mb-2">
+                                                <input class="form-check-input" type="radio" 
+                                                       name="question_{{ question.id }}" 
+                                                       id="option_{{ option.id }}" 
+                                                       value="{{ option.id }}"
+                                                       required>
+                                                <label class="form-check-label w-100" for="option_{{ option.id }}">
+                                                    <strong>{% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% endif %}.</strong> {{ option.option_text }}
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     {% endfor %}

@@ -110,10 +110,11 @@
 
                             <div class="mb-3">
                                 <div class="form-check">
-                                    {{ form.allow_retake }}
-                                    <label class="form-check-label" for="{{ form.allow_retake.id_for_label }}">
-                                        Allow Retake
+                                    {{ form.allow_review }}
+                                    <label class="form-check-label" for="{{ form.allow_review.id_for_label }}">
+                                        Allow Review
                                     </label>
+                                    <small class="form-text text-muted d-block">Users can review and retake the quiz, but only the first attempt's score will be recorded</small>
                                 </div>
                             </div>
 

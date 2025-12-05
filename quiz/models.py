@@ -26,8 +26,9 @@ class Quiz(models.Model):
     time_limit = models.IntegerField(null=True, blank=True, help_text="Time limit in minutes")
     shuffle_questions = models.BooleanField(default=False)
     show_correct_answers = models.BooleanField(default=True)
-    allow_retake = models.BooleanField(default=True)
-    max_attempts = models.IntegerField(null=True, blank=True)
+    allow_retake = models.BooleanField(default=True, null=True, blank=True)  # Deprecated, keeping for backward compatibility
+    max_attempts = models.IntegerField(null=True, blank=True)  # Deprecated, keeping for backward compatibility
+    allow_review = models.BooleanField(default=True, help_text="Allow users to review and retake quiz after first attempt")
     is_public = models.BooleanField(default=False, help_text="Make quiz available to users with same topic category")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -43,6 +44,8 @@ class Quiz(models.Model):
 class Question(models.Model):
     QUESTION_TYPE_CHOICES = [
         ('multiple_choice', 'Multiple Choice'),
+        ('checkboxes', 'Checkboxes'),
+        ('dropdown', 'Dropdown'),
         ('true_false', 'True/False'),
     ]
     

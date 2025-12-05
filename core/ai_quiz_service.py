@@ -97,7 +97,7 @@ class QuizGenerationService:
             
             # Make API call with timeout
             response = client.chat.completions.create(
-                model="meta-llama/llama-3.2-3b-instruct:free",
+                model="meta-llama/llama-3.3-70b-instruct:free",
                 messages=messages,
                 temperature=0.3,
                 max_tokens=2000,

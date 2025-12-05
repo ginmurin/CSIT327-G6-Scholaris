@@ -337,7 +337,7 @@
                             <a href="{% url 'quiz_detail' quiz.id %}" class="quiz-btn quiz-btn-primary">
                                 <i class="fas fa-eye"></i> View Details
                             </a>
-                            <a href="{% url 'add_question' quiz.id %}" class="quiz-btn quiz-btn-outline">
+                            <a href="{% url 'add_question_custom' quiz.id %}" class="quiz-btn quiz-btn-outline">
                                 <i class="fas fa-plus"></i> Add Questions
                             </a>
                         </div>
@@ -409,13 +409,15 @@
                                 {% endif %}
                             {% else %}
                                 {# User-created quiz #}
-                                <a href="{% url 'take_quiz' quiz.id %}" class="quiz-btn quiz-btn-success">
-                                    <i class="fas fa-play"></i> Take Quiz
-                                </a>
                                 {% if quiz.id in quiz_attempts and quiz_attempts|lookup:quiz.id %}
-                                    {# User has taken the quiz #}
-                                    <a href="{% url 'quiz_detail' quiz.id %}" class="quiz-btn quiz-btn-outline">
-                                        <i class="fas fa-info-circle"></i> View Info
+                                    {# User has taken the quiz - show detail button #}
+                                    <a href="{% url 'quiz_detail' quiz.id %}" class="quiz-btn quiz-btn-primary">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                {% else %}
+                                    {# User hasn't taken it yet #}
+                                    <a href="{% url 'take_quiz' quiz.id %}" class="quiz-btn quiz-btn-success">
+                                        <i class="fas fa-play"></i> Take Quiz
                                     </a>
                                 {% endif %}
                             {% endif %}

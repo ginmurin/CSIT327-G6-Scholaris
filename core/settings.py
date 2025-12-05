@@ -44,8 +44,6 @@ INSTALLED_APPS = [
     "resources",
     "progress",
     "quiz",
-
-    # your renamed admin app
     "admin_page",
 ]
 
