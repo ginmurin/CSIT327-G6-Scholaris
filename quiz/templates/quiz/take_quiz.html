@@ -92,7 +92,7 @@
                                                        value="{{ option.id }}"
                                                        required>
                                                 <label class="form-check-label w-100" for="option_{{ option.id }}">
-                                                    <strong>{% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% endif %}.</strong> {{ option.option_text }}
+                                                    <strong>{{ forloop.counter|add:-1|add:65|stringformat:"c" }}.</strong> {{ option.option_text }}
                                                 </label>
                                             </div>
                                         {% endfor %}
