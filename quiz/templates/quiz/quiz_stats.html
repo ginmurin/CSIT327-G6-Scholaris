@@ -157,11 +157,11 @@
 </head>
 <body>
     {% if selected_study_plan %}
-        <a href="{% url 'quiz_list' %}?study_plan={{ selected_study_plan.id }}" class="back-btn">
+        <a href="/quiz/?study_plan={{ selected_study_plan.id }}" class="back-btn">
             <i class="fas fa-arrow-left"></i> Back to Quizzes
         </a>
     {% else %}
-        <a href="{% url 'quiz_list' %}" class="back-btn">
+        <a href="/quiz/" class="back-btn">
             <i class="fas fa-arrow-left"></i> Back to Quizzes
         </a>
     {% endif %}

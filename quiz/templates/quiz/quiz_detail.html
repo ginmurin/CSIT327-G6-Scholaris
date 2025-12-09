@@ -13,7 +13,7 @@
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">📚 Scholaris</a>
             <div class="navbar-nav ms-auto">
-                <a href="{% url 'quiz_list' %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
+                <a href="{% url 'quiz_list' %}{% if selected_study_plan %}?study_plan={{ selected_study_plan.id }}{% endif %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
             </div>
         </div>
     </nav>
@@ -73,18 +73,26 @@
 
                 <div class="d-flex gap-2 flex-wrap">
                     {% if can_edit %}
-                        <a href="{% url 'add_question' quiz.id %}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add Questions
+                        <a href="{% url 'add_question_custom' quiz.id %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Questions (Custom)
+                        </a>
+                        <a href="{% url 'add_question' quiz.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus-circle"></i> Add Questions (Basic)
                         </a>
                         {% if quiz.status == 'draft' %}
                             {% if quiz.total_questions > 0 %}
-                                <a href="{% url 'publish_quiz' quiz.id %}" class="btn btn-success">
-                                    <i class="fas fa-upload"></i> Publish Quiz
+                                <a href="{% url 'publish_quiz' quiz.id %}" class="btn {% if quiz.is_public %}btn-warning{% else %}btn-success{% endif %}">
+                                    <i class="fas {% if quiz.is_public %}fa-lock{% else %}fa-globe{% endif %}"></i> 
+                                    {% if quiz.is_public %}Make Private{% else %}Make Public{% endif %}
                                 </a>
                             {% endif %}
                             <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteQuizModal">
                                 <i class="fas fa-trash"></i> Delete Quiz
                             </button>
+                        {% elif quiz.status == 'published' %}
+                            <a href="{% url 'publish_quiz' quiz.id %}" class="btn btn-warning">
+                                <i class="fas fa-lock"></i> Make Private
+                            </a>
                         {% endif %}
                     {% endif %}
                     
@@ -93,6 +101,30 @@
                             <button class="btn btn-secondary" disabled>
                                 <i class="fas fa-check-circle"></i> Quiz Completed
                             </button>
+                        {% elif is_other_user_quiz and has_taken_quiz %}
+                            {% if quiz.allow_review %}
+                                <a href="{% url 'take_quiz' quiz.id %}" class="btn btn-info">
+                                    <i class="fas fa-eye"></i> Review Quiz (No Points)
+                                </a>
+                            {% else %}
+                                <button class="btn btn-secondary" disabled>
+                                    <i class="fas fa-check-circle"></i> Quiz Completed
+                                </button>
+                            {% endif %}
+                        {% elif can_edit and has_taken_quiz %}
+                            {% if quiz.allow_review %}
+                                <a href="{% url 'take_quiz' quiz.id %}" class="btn btn-info">
+                                    <i class="fas fa-eye"></i> Review Your Quiz (No Points)
+                                </a>
+                            {% else %}
+                                <button class="btn btn-secondary" disabled>
+                                    <i class="fas fa-check-circle"></i> Quiz Completed
+                                </button>
+                            {% endif %}
+                        {% elif not is_ai_quiz and not is_other_user_quiz and not has_taken_quiz %}
+                            <a href="{% url 'take_quiz' quiz.id %}" class="btn btn-success">
+                                <i class="fas fa-play"></i> Take Your Quiz
+                            </a>
                         {% else %}
                             <a href="{% url 'take_quiz' quiz.id %}" class="btn btn-success">
                                 <i class="fas fa-play"></i> Take Quiz

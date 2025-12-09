@@ -127,14 +127,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
       padding: 20px 30px;
       border-radius: 15px;
       font-size: 18px;
       font-weight: 600;
       text-decoration: none;
       transition: all 0.3s ease;
-      border: 2px solid transparent;
+      border: none;
+      outline: none;
     }
 
     .btn-resources {
@@ -168,10 +168,6 @@
 
     .btn-quiz.disabled:hover {
       transform: none;
-    }
-
-    .btn-icon {
-      font-size: 24px;
     }
 
     .back-button {
@@ -298,21 +294,13 @@
             <div class="stat-value">#{{ user_rank }}</div>
             <div class="stat-label">Global Ranking</div>
           </div>
-
-          <div class="stat-card" onclick="window.location.href='{% url 'leaderboard' %}'" style="cursor: pointer;">
-            <div class="stat-icon">👑</div>
-            <div class="stat-value">View</div>
-            <div class="stat-label">Leaderboard</div>
-          </div>
         </div>
 
         <div class="action-buttons">
           <a href="{% url 'study_plan_resources' study_plan.id %}" class="action-btn btn-resources">
-            <span class="btn-icon">📚</span>
             <span>View Resources</span>
           </a>
           <a href="{% url 'quiz_list' %}?study_plan={{ study_plan.id }}" class="action-btn btn-quiz">
-            <span class="btn-icon">📝</span>
             <span>Take Quiz</span>
           </a>
         </div>
@@ -361,7 +349,7 @@
           </p>
           {% if progress.completed_at %}
           <p style="color: #4ade80; font-weight: 600;">
-            <strong>✅ Completed:</strong> {{ progress.completed_at|date:"F d, Y" }}
+            <strong>Completed:</strong> {{ progress.completed_at|date:"F d, Y" }}
           </p>
           {% else %}
           <p style="color: rgba(255, 255, 255, 0.8);">

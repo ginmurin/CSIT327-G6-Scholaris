@@ -13,7 +13,7 @@
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">📚 Scholaris</a>
             <div class="navbar-nav ms-auto">
-                <a href="{% url 'quiz_list' %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
+                <a href="{% url 'quiz_list' %}{% if selected_study_plan %}?study_plan={{ selected_study_plan.id }}{% endif %}" class="btn btn-outline-light btn-sm">Back to Quizzes</a>
             </div>
         </div>
     </nav>
@@ -87,7 +87,7 @@
                                             <div class="
                                                 {% if option.is_correct %}
                                                     alert alert-success
-                                                {% elif option == result.selected_option and not option.is_correct %}
+                                                {% elif option in result.selected_options and not option.is_correct %}
                                                     alert alert-danger
                                                 {% else %}
                                                     alert alert-light
@@ -96,7 +96,7 @@
                                                 
                                                 {% if option.is_correct %}
                                                     <i class="fas fa-check-circle text-success float-end"></i>
-                                                {% elif option == result.selected_option %}
+                                                {% elif option in result.selected_options %}
                                                     <i class="fas fa-times-circle text-danger float-end"></i>
                                                 {% endif %}
                                             </div>

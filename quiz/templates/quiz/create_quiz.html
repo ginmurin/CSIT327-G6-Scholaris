@@ -110,10 +110,11 @@
 
                             <div class="mb-3">
                                 <div class="form-check">
-                                    {{ form.allow_retake }}
-                                    <label class="form-check-label" for="{{ form.allow_retake.id_for_label }}">
-                                        Allow Retake
+                                    {{ form.allow_review }}
+                                    <label class="form-check-label" for="{{ form.allow_review.id_for_label }}">
+                                        Allow Review
                                     </label>
+                                    <small class="form-text text-muted d-block">Users can review and retake the quiz, but only the first attempt's score will be recorded</small>
                                 </div>
                             </div>
 
@@ -131,7 +132,7 @@
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-save"></i> Create Quiz & Add Questions
                                 </button>
-                                <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">
+                                <a href="{% url 'quiz_list' %}{% if selected_study_plan %}?study_plan={{ selected_study_plan.id }}{% endif %}" class="btn btn-outline-secondary">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>
