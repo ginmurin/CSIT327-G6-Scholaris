@@ -41,27 +41,13 @@
     <section class="white-card">
       <div style="display:flex; gap:18px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
 
-        <div style="display:flex; gap:18px; align-items:center;">
-          <div class="profile-avatar profile-avatar-lg">
-            {% if target_user.profile_src %}
-              <img src="{{ target_user.profile_src }}" alt="{{ target_user.name }}" class="avatar-img">
-            {% elif target_profile_url %}
-              <img src="{{ target_profile_url }}" alt="{{ target_user.name }}" class="avatar-img">
-            {% elif target_user.profile_picture %}
-              <img src="{{ target_user.profile_picture }}" alt="{{ target_user.name }}" class="avatar-img">
-            {% else %}
-              <div class="avatar-placeholder">{{ target_user.name|first|upper }}</div>
-            {% endif %}
-          </div>
-
-          <div>
-            <h2 style="margin-bottom:6px;">{{ target_user.name }}</h2>
-            <p><strong>Email:</strong> {{ target_user.email }}</p>
-            <p><strong>Total Points:</strong> {{ target_user.total_points }}</p>
-            {% if target_user.role %}
-              <p><strong>Role:</strong> {{ target_user.role }}</p>
-            {% endif %}
-          </div>
+        <div>
+          <h2 style="margin-bottom:6px;">{{ target_user.name }}</h2>
+          <p><strong>Email:</strong> {{ target_user.email }}</p>
+          <p><strong>Total Points:</strong> {{ target_user.total_points }}</p>
+          {% if target_user.role %}
+            <p><strong>Role:</strong> {{ target_user.role }}</p>
+          {% endif %}
         </div>
 
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">

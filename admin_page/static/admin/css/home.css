@@ -390,12 +390,16 @@ body::before {
 }
 
 .profile-avatar--lg {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
 }
 
+.profile-avatar--lg .avatar-img,
 .profile-avatar--lg .avatar-placeholder {
-  font-size: 40px;
+  width: 80px;
+  height: 80px;
+  font-size: 32px;
+  border: 3px solid #667eea;
 }
 
 /* Mini Avatar */
@@ -692,9 +696,16 @@ body::before {
 }
 
 .header-avatar {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border: 3px solid #667eea;
+}
+
+.header-avatar .avatar-img,
+.header-avatar .avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  font-size: 32px;
 }
 
 .profile-avatar--list{
