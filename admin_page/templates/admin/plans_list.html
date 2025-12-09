@@ -51,29 +51,50 @@
     }
 
     .plan-table-header {
-      background: #f7f6ff;
-      font-weight: 900;
-      color: #555;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-weight: 800;
+      color: #fff;
       display: grid;
-      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 0.8fr;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 10px 10px 0 0;
+      grid-template-columns: 2.5fr 1.8fr 1.2fr 1fr 1.2fr 1.3fr;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 12px 12px 0 0;
       align-items: center;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .plan-table-header > div {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .plan-table-header > div:first-child {
+      justify-content: flex-start;
     }
 
     .plan-table-row {
       display: grid;
-      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 0.8fr;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #f0f0f0;
+      grid-template-columns: 2.5fr 1.8fr 1.2fr 1fr 1.2fr 1.3fr;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e8e8f0;
       align-items: center;
       background: #fff;
+      transition: all 0.2s ease;
     }
 
     .plan-table-row:hover {
-      background: #fafbff;
+      background: #f8f9ff;
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+    }
+
+    .plan-table-row:last-child {
+      border-radius: 0 0 12px 12px;
     }
 
     .plan-title-cell {
@@ -85,23 +106,26 @@
     .plan-user-cell {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: flex-start;
+      gap: 10px;
       font-size: 13px;
+      padding-left: 8px;
     }
 
     .plan-user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #6a7cff, #9b5cff);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 900;
       flex-shrink: 0;
       overflow: hidden;
+      box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
     }
 
     .plan-user-avatar img {
@@ -112,74 +136,76 @@
 
     .plan-user-name {
       font-weight: 600;
+      color: #444;
     }
 
     .plan-status {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 900;
-      padding: 5px 10px;
-      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
       text-align: center;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      min-width: 90px;
     }
 
     .plan-status.active {
       background: #e9f7ee;
       color: #1f8a3b;
+      border: 1px solid #c3e6cb;
     }
 
     .plan-status.completed {
       background: #e3f2fd;
       color: #1565c0;
+      border: 1px solid #b3e0ff;
     }
 
     .plan-category {
       font-size: 12px;
       color: #666;
-    }
-
-    .plan-actions {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .plan-action-btn {
-      padding: 0 12px;
-      height: 28px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 800;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
       text-align: center;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-      display: inline-flex;
+      font-weight: 600;
+    }
+
+    .plan-duration-cell {
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .plan-actions-cell {
+      display: flex;
+      gap: 8px;
       align-items: center;
       justify-content: center;
-      min-width: 50px;
-      line-height: 1;
     }
 
-    .plan-action-btn.view {
-      background: #7a57ff;
-      color: #fff;
+    .plan-category {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+      font-weight: 600;
     }
 
-    .plan-action-btn.view:hover {
-      background: #6a47dd;
+    .plan-duration-cell {
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      font-weight: 600;
     }
 
-    .plan-action-btn.delete {
-      background: #ff5d7b;
-      color: #fff;
-    }
-
-    .plan-action-btn.delete:hover {
-      background: #dd4d6b;
+    .plan-actions-cell {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
     }
 
     .empty-state {
@@ -235,7 +261,7 @@
       </div>
 
       <div class="top-actions">
-        <a href="{% url 'admin_page:home' %}" class="btn-light">Back to Admin</a>
+        <a href="{% url 'admin_page:home' %}" class="btn-light">Back to Dashboard</a>
       </div>
     </header>
 
@@ -315,11 +341,11 @@
             {{ plan.start_date|date:"M d" }} - {{ plan.end_date|date:"M d, Y" }}
           </div>
 
-          <div class="plan-actions">
-            <a href="{% url 'admin_page:open_plan' plan.id %}" class="plan-action-btn view">View</a>
-            <form method="post" action="{% url 'admin_page:delete_plan' plan.id %}" class="delete-form" style="display: inline;">
+          <div class="actions">
+            <a href="{% url 'admin_page:open_plan' plan.id %}" class="btn-mini">View</a>
+            <form method="post" action="{% url 'admin_page:delete_plan' plan.id %}" class="delete-form">
               {% csrf_token %}
-              <button class="plan-action-btn delete" type="submit" data-plan-title="{{ plan.title }}">Delete</button>
+              <button class="btn-mini danger" type="submit" data-plan-title="{{ plan.title }}">Delete</button>
             </form>
           </div>
         </div>
