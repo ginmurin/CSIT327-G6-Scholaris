@@ -291,6 +291,9 @@ def quiz_detail(request, quiz_id):
     user = User.objects.get(id=user_id)
     quiz = get_object_or_404(Quiz, id=quiz_id)
     
+    # Check if this is a view-only request (from admin)
+    view_only = request.GET.get('view_only') == '1'
+    
     # Check if user can access this quiz
     # AI-generated quizzes (created_by is None) cannot be edited or deleted
     can_edit = quiz.created_by == user
@@ -303,13 +306,13 @@ def quiz_detail(request, quiz_id):
     # Check if user has already taken quiz
     has_taken_quiz = attempts.filter(completed_at__isnull=False).exists()
     
-    # For AI quizzes, redirect to take_quiz if not yet taken
-    if is_ai_quiz and not has_taken_quiz:
+    # For AI quizzes, redirect to take_quiz if not yet taken (unless view_only)
+    if not view_only and is_ai_quiz and not has_taken_quiz:
         messages.info(request, 'Take the quiz first to see the details!')
         return redirect('take_quiz', quiz_id=quiz.id)
     
-    # For other users' quizzes, redirect to take_quiz if not yet taken
-    if is_other_user_quiz and not has_taken_quiz:
+    # For other users' quizzes, redirect to take_quiz if not yet taken (unless view_only)
+    if not view_only and is_other_user_quiz and not has_taken_quiz:
         messages.info(request, 'Take the quiz first to see the details!')
         return redirect('take_quiz', quiz_id=quiz.id)
     
@@ -324,6 +327,7 @@ def quiz_detail(request, quiz_id):
         'has_taken_quiz': has_taken_quiz,
         'attempts': attempts,
         'selected_study_plan': quiz.study_plan,
+        'view_only': view_only,
         'name': request.session.get("app_user_name", "User")
     })
 

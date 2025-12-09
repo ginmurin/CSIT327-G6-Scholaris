@@ -1,0 +1,423 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Manage Quizzes</title>
+  <link rel="stylesheet" href="{% static 'admin/css/home.css' %}">
+  <style>
+    .search-filter {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: #7a57ff;
+      box-shadow: 0 0 0 3px rgba(122, 87, 255, 0.1);
+    }
+
+    .filter-select {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      cursor: pointer;
+      min-width: 150px;
+    }
+
+    .filter-select:focus {
+      border-color: #7a57ff;
+      box-shadow: 0 0 0 3px rgba(122, 87, 255, 0.1);
+    }
+
+    .quiz-table {
+      width: 100%;
+    }
+
+    .quiz-table-header {
+      background: #f7f6ff;
+      font-weight: 900;
+      color: #555;
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 0.8fr;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px 10px 0 0;
+      align-items: center;
+    }
+
+    .quiz-table-row {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 0.8fr;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      align-items: center;
+      background: #fff;
+    }
+
+    .quiz-table-row:hover {
+      background: #fafbff;
+    }
+
+    .quiz-title-cell {
+      font-weight: 700;
+      color: #1f1f1f;
+      word-break: break-word;
+    }
+
+    .quiz-owner-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .quiz-owner-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #6a7cff, #9b5cff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .quiz-owner-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .quiz-owner-name {
+      font-weight: 600;
+    }
+
+    .quiz-status {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 5px 10px;
+      border-radius: 6px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .quiz-status.draft {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .quiz-status.published {
+      background: #e9f7ee;
+      color: #1f8a3b;
+    }
+
+    .quiz-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .quiz-action-btn {
+      padding: 0 12px;
+      height: 28px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 50px;
+      line-height: 1;
+    }
+
+    .quiz-action-btn.view {
+      background: #7a57ff;
+      color: #fff;
+    }
+
+    .quiz-action-btn.view:hover {
+      background: #6a47dd;
+    }
+
+    .quiz-action-btn.delete {
+      background: #ff5d7b;
+      color: #fff;
+    }
+
+    .quiz-action-btn.delete:hover {
+      background: #dd4d6b;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .ai-generated {
+      font-size: 11px;
+      background: #e9e7ff;
+      color: #7a57ff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+      .quiz-table-header,
+      .quiz-table-row {
+        grid-template-columns: 1.5fr 1.5fr 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .search-filter {
+        flex-direction: column;
+      }
+
+      .search-input,
+      .filter-select {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-bg">
+  <div class="container">
+
+    <header class="top-card">
+      <div class="top-left">
+        <div class="profile-avatar header-avatar">
+          {% if admin_user.profile_src %}
+            <img src="{{ admin_user.profile_src }}" alt="{{ admin_user.name }}" class="avatar-img">
+          {% elif admin_user.profile_picture %}
+            <img src="{{ admin_user.profile_picture }}" alt="{{ admin_user.name }}" class="avatar-img">
+          {% else %}
+            <div class="avatar-placeholder">{{ admin_user.name|first|upper }}</div>
+          {% endif %}
+        </div>
+        <div>
+          <h1>Manage Quizzes</h1>
+          <p>View all quizzes in the system.</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a href="{% url 'admin_page:home' %}" class="btn-light">Back to Admin</a>
+      </div>
+    </header>
+
+    <section class="white-card">
+      <div class="card-header">
+        <h2>All Quizzes</h2>
+      </div>
+
+      <div class="search-filter">
+        <form method="get" action="{% url 'admin_page:quizzes_list' %}" style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%; align-items: center;">
+          <input 
+            type="text" 
+            name="q" 
+            value="{{ q|default:'' }}" 
+            placeholder="Search by title..."
+            class="search-input"
+            style="flex: 1; min-width: 200px;"
+          />
+          
+          <select name="status" class="filter-select" style="min-width: 150px;">
+            <option value="">All Status</option>
+            <option value="draft" {% if status == 'draft' %}selected{% endif %}>Draft</option>
+            <option value="published" {% if status == 'published' %}selected{% endif %}>Published</option>
+          </select>
+
+          <select name="owner" class="filter-select" style="min-width: 150px;">
+            <option value="">All Quizzes</option>
+            <option value="ai" {% if owner == 'ai' %}selected{% endif %}>AI Generated</option>
+            <option value="user" {% if owner == 'user' %}selected{% endif %}>User Created</option>
+          </select>
+
+          <button class="btn-mini" type="submit">Search</button>
+          {% if q or status or owner %}
+          <a href="{% url 'admin_page:quizzes_list' %}" class="btn-light" style="text-decoration: none;">Clear</a>
+          {% endif %}
+        </form>
+      </div>
+
+      {% if quizzes %}
+      <div class="quiz-table">
+        <div class="quiz-table-header">
+          <div>Quiz Title</div>
+          <div>Owner</div>
+          <div>Status</div>
+          <div>Questions</div>
+          <div>Difficulty</div>
+          <div>Action</div>
+        </div>
+
+        {% for quiz in quizzes %}
+        <div class="quiz-table-row">
+          <div class="quiz-title-cell">{{ quiz.title }}</div>
+
+          <div class="quiz-owner-cell">
+            <div class="quiz-owner-avatar">
+              {% if quiz.created_by %}
+                {% if quiz.created_by.profile_src %}
+                  <img src="{{ quiz.created_by.profile_src }}" alt="{{ quiz.created_by.name }}">
+                {% else %}
+                  {{ quiz.created_by.name|first|upper }}
+                {% endif %}
+              {% else %}
+                🤖
+              {% endif %}
+            </div>
+            <span class="quiz-owner-name">
+              {% if quiz.created_by %}
+                {{ quiz.created_by.name }}
+              {% else %}
+                AI Generated
+              {% endif %}
+            </span>
+          </div>
+
+          <div>
+            {% if quiz.created_by %}
+            <span class="quiz-status {{ quiz.status|lower }}">{{ quiz.status|upper }}</span>
+            {% else %}
+            <span class="quiz-status draft">STUDY PLAN</span>
+            {% endif %}
+          </div>
+
+          <div style="text-align: center; font-weight: 600;">{{ quiz.total_questions }}</div>
+
+          <div style="text-align: center;">{{ quiz.difficulty|capfirst }}</div>
+
+          <div class="quiz-actions">
+            <a href="{% url 'quiz_detail' quiz.id %}?view_only=1" class="quiz-action-btn view">View</a>
+            {% if quiz.created_by %}
+            <form method="post" action="{% url 'admin_page:delete_quiz' quiz.id %}" class="delete-form" style="display: inline;">
+              {% csrf_token %}
+              <button class="quiz-action-btn delete" type="submit" data-quiz-title="{{ quiz.title }}">Delete</button>
+            </form>
+            {% else %}
+            <span class="ai-generated">AI</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">📝</div>
+        <div style="font-size: 16px; margin-bottom: 8px;">No quizzes found</div>
+        <div style="font-size: 13px; color: #bbb;">Try adjusting your search or filters</div>
+      </div>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+
+<div id="deleteModal" class="modal-backdrop" style="display:none;">
+  <div class="modal-card">
+    <h3 class="modal-title">Delete quiz?</h3>
+    <p class="modal-text">
+      Are you sure you want to delete <span id="deleteQuizTitle">this quiz</span>?
+      This action cannot be undone.
+    </p>
+
+    <div class="modal-actions">
+      <button id="cancelDelete" class="btn-light" type="button">Cancel</button>
+      <button id="confirmDelete" class="btn-mini danger" type="button">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const modal = document.getElementById("deleteModal");
+    const cancelBtn = document.getElementById("cancelDelete");
+    const confirmBtn = document.getElementById("confirmDelete");
+    const titleSpan = document.getElementById("deleteQuizTitle");
+
+    let pendingForm = null;
+
+    document.querySelectorAll(".delete-form button[type='submit']").forEach(btn => {
+      btn.addEventListener("click", function(e){
+        e.preventDefault();
+        pendingForm = this.closest("form");
+        titleSpan.textContent = this.dataset.quizTitle || "this quiz";
+        modal.style.display = "flex";
+      });
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+      pendingForm = null;
+    });
+
+    modal.addEventListener("click", (e) => {
+      if(e.target === modal){
+        modal.style.display = "none";
+        pendingForm = null;
+      }
+    });
+
+    confirmBtn.addEventListener("click", () => {
+      if(pendingForm) pendingForm.submit();
+    });
+
+    // Auto-submit filter when status or owner changes
+    const statusSelect = document.querySelector('select[name="status"]');
+    const ownerSelect = document.querySelector('select[name="owner"]');
+    
+    if(statusSelect) {
+      statusSelect.addEventListener('change', function() {
+        this.closest('form').submit();
+      });
+    }
+    
+    if(ownerSelect) {
+      ownerSelect.addEventListener('change', function() {
+        this.closest('form').submit();
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ from django.conf import settings
 
 from authentication.models import User as AppUser
 from studyplan.models import StudyPlan
+from quiz.models import Quiz
 
 
 def _profile_src(u):
@@ -198,3 +199,137 @@ def return_to_admin(request):
     request.session.pop("impersonate_original_admin_id", None)
 
     return redirect("admin_page:home")
+
+
+def quizzes_list(request):
+    """Display all quizzes with their owners"""
+    admin_id = request.session.get("app_user_id")
+    if not admin_id:
+        return redirect("landing")
+
+    admin_user = get_object_or_404(AppUser, id=admin_id)
+    if not _is_admin(admin_user):
+        return redirect("home")
+
+    q = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
+    owner = request.GET.get("owner", "").strip()
+
+    quizzes_qs = Quiz.objects.select_related("created_by").order_by("-created_at")
+
+    if q:
+        quizzes_qs = quizzes_qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
+
+    if status:
+        if status.lower() == 'published':
+            # AI-generated quizzes should never be published (they're for user study plans only)
+            quizzes_qs = quizzes_qs.filter(status__iexact=status, created_by__isnull=False)
+        else:
+            quizzes_qs = quizzes_qs.filter(status__iexact=status)
+    
+    if owner == "ai":
+        quizzes_qs = quizzes_qs.filter(created_by__isnull=True)
+    elif owner == "user":
+        quizzes_qs = quizzes_qs.filter(created_by__isnull=False)
+
+    quizzes = list(quizzes_qs)
+    
+    # Attach profile sources for all quiz creators
+    for quiz in quizzes:
+        if quiz.created_by:
+            quiz.created_by.profile_src = _profile_src(quiz.created_by)
+
+    admin_user.profile_src = _profile_src(admin_user)
+
+    return render(request, "admin/quizzes_list.html", {
+        "admin_user": admin_user,
+        "quizzes": quizzes,
+        "q": q,
+        "status": status,
+        "owner": owner,
+    })
+
+
+def delete_quiz(request, quiz_id):
+    """Delete a quiz"""
+    if request.method != "POST":
+        return redirect("admin_page:quizzes_list")
+
+    admin_id = request.session.get("app_user_id")
+    if not admin_id:
+        return redirect("landing")
+
+    admin_user = get_object_or_404(AppUser, id=admin_id)
+    if not _is_admin(admin_user):
+        return redirect("home")
+
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+
+    # Only allow deletion of user-created quizzes, not AI-generated ones
+    if quiz.created_by:
+        quiz.delete()
+
+    return redirect("admin_page:quizzes_list")
+
+
+def plans_list(request):
+    """Display all study plans with their users"""
+    admin_id = request.session.get("app_user_id")
+    if not admin_id:
+        return redirect("landing")
+
+    admin_user = get_object_or_404(AppUser, id=admin_id)
+    if not _is_admin(admin_user):
+        return redirect("home")
+
+    q = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
+    category = request.GET.get("category", "").strip()
+
+    plans_qs = StudyPlan.objects.select_related("user").order_by("-date_created")
+
+    if q:
+        plans_qs = plans_qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
+
+    if status:
+        plans_qs = plans_qs.filter(status__iexact=status)
+    
+    if category:
+        plans_qs = plans_qs.filter(topic_category=category)
+
+    plans = list(plans_qs)
+    
+    # Attach profile sources for all plan users
+    for plan in plans:
+        if plan.user:
+            plan.user.profile_src = _profile_src(plan.user)
+
+    admin_user.profile_src = _profile_src(admin_user)
+
+    return render(request, "admin/plans_list.html", {
+        "admin_user": admin_user,
+        "plans": plans,
+        "q": q,
+        "status": status,
+        "category": category,
+        "topic_categories": StudyPlan.TOPIC_CATEGORIES,
+    })
+
+
+def delete_plan(request, plan_id):
+    """Delete a study plan"""
+    if request.method != "POST":
+        return redirect("admin_page:plans_list")
+
+    admin_id = request.session.get("app_user_id")
+    if not admin_id:
+        return redirect("landing")
+
+    admin_user = get_object_or_404(AppUser, id=admin_id)
+    if not _is_admin(admin_user):
+        return redirect("home")
+
+    plan = get_object_or_404(StudyPlan, id=plan_id)
+    plan.delete()
+
+    return redirect("admin_page:plans_list")

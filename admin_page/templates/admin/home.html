@@ -43,29 +43,29 @@
 
       <section class="stats-row">
         <div class="stat-card">
-          <div class="stat-icon">👤</div>
+          <span class="stat-icon">👤</span>
           <div class="stat-number">{{ user_count }}</div>
           <div class="stat-label">Total Users</div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon">📚</div>
+          <span class="stat-icon">📚</span>
           <div class="stat-number">{{ plan_count }}</div>
           <div class="stat-label">Study Plans</div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon">✅</div>
+          <span class="stat-icon">✅</span>
           <div class="stat-number">{{ active_count }}</div>
           <div class="stat-label">Active Plans</div>
         </div>
       </section>
 
       <section class="quick-row">
-        <a class="quick-card" href="{% url 'list_study_plans' %}">
+        <a class="quick-card" href="{% url 'admin_page:plans_list' %}">
           <div class="quick-emoji">📘</div>
           <h3>Manage Study Plans</h3>
-          <p>View, edit, activate, or archive plans.</p>
+          <p>View and Delete Study Plans in the system.</p>
         </a>
 
         <a class="quick-card" href="{% url 'admin_page:users_list' %}">
@@ -74,10 +74,10 @@
           <p>View users and accounts.</p>
         </a>
 
-        <a class="quick-card" href="/quiz/">
+        <a class="quick-card" href="{% url 'admin_page:quizzes_list' %}">
           <div class="quick-emoji">📝</div>
           <h3>Manage Quizzes</h3>
-          <p>Create AI quizzes and review results.</p>
+          <p>View and manage all quizzes in the system.</p>
         </a>
       </section>
 
