@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Unban User</title>
+  <link rel="stylesheet" href="{% static 'admin/css/home.css' %}">
+</head>
+<body>
+
+<div class="page-bg">
+  <div class="container">
+
+    <section class="white-card" style="max-width:700px;margin:auto;">
+      <h1>Unban Account</h1>
+      <p style="margin:12px 0 20px;">
+        Unban <strong>{{ target_user.username }}</strong>?  
+        They will be able to log in again.
+      </p>
+
+      <form method="POST" style="display:flex; gap:10px;">
+        {% csrf_token %}
+        <button type="submit" class="btn-mini">Yes, Unban</button>
+        <a href="{% url 'admin_page:users_list' %}" class="btn-mini">Cancel</a>
+      </form>
+    </section>
+
+  </div>
+</div>
+
+</body>
+</html>

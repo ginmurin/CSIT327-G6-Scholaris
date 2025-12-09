@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Users</title>
+  <link rel="stylesheet" href="{% static 'admin/css/home.css' %}">
+</head>
+<body>
+
+<div class="page-bg">
+  <div class="container">
+
+    <header class="top-card">
+      <div class="top-left">
+        <div class="profile-avatar header-avatar">
+          {% if admin_user.profile_src %}
+            <img src="{{ admin_user.profile_src }}" alt="{{ admin_user.name }}" class="avatar-img">
+          {% elif admin_user.profile_picture %}
+            <img src="{{ admin_user.profile_picture }}" alt="{{ admin_user.name }}" class="avatar-img">
+          {% else %}
+            <div class="avatar-placeholder">{{ admin_user.name|first|upper }}</div>
+          {% endif %}
+        </div>
+        <div>
+          <h1>Manage Users</h1>
+          <p>View, delete, or open accounts.</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a href="{% url 'admin_page:home' %}" class="btn-light">Back to Admin</a>
+      </div>
+    </header>
+
+    <section class="white-card">
+      <div class="card-header">
+        <h2>All Users</h2>
+
+        <form method="get" style="display:flex; gap:8px; align-items:center;">
+          <input 
+            type="text" 
+            name="q" 
+            value="{{ q }}" 
+            placeholder="Search name/email..."
+            style="padding:8px 10px;border-radius:8px;border:1px solid #ddd;outline:none;"
+          />
+          <button class="btn-mini" type="submit">Search</button>
+        </form>
+      </div>
+
+      <div class="table">
+        <div class="table-row table-head">
+          <div>User</div>
+          <div>Email</div>
+          <div>Points</div>
+          <div>Action</div>
+        </div>
+
+        {% for u in users %}
+        <div class="table-row">
+          <div class="user-cell">
+
+            <div class="profile-avatar profile-avatar--list">
+              {% if u.profile_src %}
+                <img src="{{ u.profile_src }}" alt="{{ u.name }}" class="avatar-img">
+              {% elif u.profile_picture %}
+                <img src="{{ u.profile_picture }}" alt="{{ u.name }}" class="avatar-img">
+              {% else %}
+                <div class="avatar-placeholder">{{ u.name|first|upper }}</div>
+              {% endif %}
+            </div>
+
+            <span>{{ u.name }}</span>
+          </div>
+
+          <div>{{ u.email }}</div>
+          <div>{{ u.total_points }}</div>
+
+          <div class="actions">
+            <a href="{% url 'admin_page:user_detail' u.id %}" class="btn-mini">View</a>
+
+            <form method="post"
+                  action="{% url 'admin_page:delete_user' u.id %}"
+                  class="delete-form">
+              {% csrf_token %}
+              <button class="btn-mini danger" type="submit" data-name="{{ u.name }}">Delete</button>
+            </form>
+          </div>
+        </div>
+        {% empty %}
+          <p class="muted">No users found.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+</div>
+
+
+<div id="deleteModal" class="modal-backdrop" style="display:none;">
+  <div class="modal-card">
+    <h3 class="modal-title">Delete account?</h3>
+    <p class="modal-text">
+      Are you sure you want to delete <span id="deleteUserName">this user</span>?
+      This action cannot be undone.
+    </p>
+
+    <div class="modal-actions">
+      <button id="cancelDelete" class="btn-light" type="button">Cancel</button>
+      <button id="confirmDelete" class="btn-mini danger" type="button">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const modal = document.getElementById("deleteModal");
+    const cancelBtn = document.getElementById("cancelDelete");
+    const confirmBtn = document.getElementById("confirmDelete");
+    const nameSpan = document.getElementById("deleteUserName");
+
+    let pendingForm = null;
+
+    document.querySelectorAll(".delete-form button[type='submit']").forEach(btn => {
+      btn.addEventListener("click", function(e){
+        e.preventDefault();
+        pendingForm = this.closest("form");
+        nameSpan.textContent = this.dataset.name || "this user";
+        modal.style.display = "flex";
+      });
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+      pendingForm = null;
+    });
+
+    modal.addEventListener("click", (e) => {
+      if(e.target === modal){
+        modal.style.display = "none";
+        pendingForm = null;
+      }
+    });
+
+    confirmBtn.addEventListener("click", () => {
+      if(pendingForm) pendingForm.submit();
+    });
+  })();
+</script>
+
+</body>
+</html>

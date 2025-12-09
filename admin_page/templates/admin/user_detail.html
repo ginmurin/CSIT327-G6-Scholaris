@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - User Detail</title>
+  <link rel="stylesheet" href="{% static 'admin/css/home.css' %}">
+</head>
+<body>
+
+<div class="page-bg">
+  <div class="container">
+
+    <header class="top-card">
+      <div class="top-left">
+        <div class="profile-avatar header-avatar">
+          {% if target_user.profile_src %}
+            <img src="{{ target_user.profile_src }}" alt="{{ target_user.name }}" class="avatar-img">
+          {% elif target_profile_url %}
+            <img src="{{ target_profile_url }}" alt="{{ target_user.name }}" class="avatar-img">
+          {% elif target_user.profile_picture %}
+            <img src="{{ target_user.profile_picture }}" alt="{{ target_user.name }}" class="avatar-img">
+          {% else %}
+            <div class="avatar-placeholder">{{ target_user.name|first|upper }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <h1>User Profile</h1>
+          <p>Viewing account of {{ target_user.name }}</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a href="{% url 'admin_page:users_list' %}" class="btn-light">Back to Users</a>
+        <a href="{% url 'admin_page:home' %}" class="btn-outline">Admin Home</a>
+      </div>
+    </header>
+
+    <section class="white-card">
+      <div style="display:flex; gap:18px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+
+        <div style="display:flex; gap:18px; align-items:center;">
+          <div class="profile-avatar profile-avatar-lg">
+            {% if target_user.profile_src %}
+              <img src="{{ target_user.profile_src }}" alt="{{ target_user.name }}" class="avatar-img">
+            {% elif target_profile_url %}
+              <img src="{{ target_profile_url }}" alt="{{ target_user.name }}" class="avatar-img">
+            {% elif target_user.profile_picture %}
+              <img src="{{ target_user.profile_picture }}" alt="{{ target_user.name }}" class="avatar-img">
+            {% else %}
+              <div class="avatar-placeholder">{{ target_user.name|first|upper }}</div>
+            {% endif %}
+          </div>
+
+          <div>
+            <h2 style="margin-bottom:6px;">{{ target_user.name }}</h2>
+            <p><strong>Email:</strong> {{ target_user.email }}</p>
+            <p><strong>Total Points:</strong> {{ target_user.total_points }}</p>
+            {% if target_user.role %}
+              <p><strong>Role:</strong> {{ target_user.role }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <form method="post"
+                action="{% url 'admin_page:delete_user' target_user.id %}"
+                class="delete-form">
+            {% csrf_token %}
+            <button type="submit" class="btn-mini danger" data-name="{{ target_user.name }}">
+              Delete
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="white-card">
+      <div class="card-header">
+        <h2>Study Plans</h2>
+      </div>
+
+      <div class="plans-grid">
+        {% for p in plans %}
+        <article class="plan-item">
+          <div class="plan-title-row">
+            <h3>{{ p.title }}</h3>
+            {% if p.status|lower == "active" %}
+              <span class="badge active">ACTIVE</span>
+            {% else %}
+              <span class="badge inactive">{{ p.status|upper }}</span>
+            {% endif %}
+          </div>
+
+          <p class="plan-subtitle">{{ p.learning_objective }}</p>
+
+          <div class="plan-actions">
+            <a href="{% url 'study_plan_progress' p.id %}" class="btn-primary">Open</a>
+            <a href="{% url 'edit_study_plan' p.id %}" class="btn-light">Edit</a>
+          </div>
+        </article>
+        {% empty %}
+          <p class="muted">This user has no study plans.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+</div>
+
+
+<div id="deleteModal" class="modal-backdrop" style="display:none;">
+  <div class="modal-card">
+    <h3 class="modal-title">Delete account?</h3>
+    <p class="modal-text">
+      Are you sure you want to delete <span id="deleteUserName">this user</span>?
+      This action cannot be undone.
+    </p>
+
+    <div class="modal-actions">
+      <button id="cancelDelete" class="btn-light" type="button">Cancel</button>
+      <button id="confirmDelete" class="btn-mini danger" type="button">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const modal = document.getElementById("deleteModal");
+    const cancelBtn = document.getElementById("cancelDelete");
+    const confirmBtn = document.getElementById("confirmDelete");
+    const nameSpan = document.getElementById("deleteUserName");
+
+    let pendingForm = null;
+
+    document.querySelectorAll(".delete-form button[type='submit']").forEach(btn => {
+      btn.addEventListener("click", function(e){
+        e.preventDefault();
+        pendingForm = this.closest("form");
+        nameSpan.textContent = this.dataset.name || "this user";
+        modal.style.display = "flex";
+      });
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+      pendingForm = null;
+    });
+
+    modal.addEventListener("click", (e) => {
+      if(e.target === modal){
+        modal.style.display = "none";
+        pendingForm = null;
+      }
+    });
+
+    confirmBtn.addEventListener("click", () => {
+      if(pendingForm) pendingForm.submit();
+    });
+  })();
+</script>
+
+</body>
+</html>

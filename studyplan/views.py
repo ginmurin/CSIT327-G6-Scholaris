@@ -8,41 +8,50 @@ from core.ai_quiz_service import QuizGenerationService
 from core.ai_resource_service import ResourceGenerationService
 from quiz.models import Quiz, Question, QuestionOption
 
-# Create your views here.
-
 def require_login(view_func):
-    """Custom decorator to check if user is logged in via session"""
     def wrapper(request, *args, **kwargs):
         if not request.session.get("app_user_id"):
             return redirect("login")
         return view_func(request, *args, **kwargs)
     return wrapper
 
+def _is_admin(user):
+    is_admin = (
+        getattr(user, "is_admin", False)
+        or getattr(user, "is_staff", False)
+        or getattr(user, "is_superuser", False)
+    )
+    if hasattr(user, "role"):
+        is_admin = (str(user.role).lower() == "admin")
+    return is_admin
+
+def _get_plan_for_user_or_admin(user, plan_id):
+    if _is_admin(user):
+        return get_object_or_404(StudyPlan, id=plan_id)
+    return get_object_or_404(StudyPlan, id=plan_id, user=user)
+
 @require_login
 def list_study_plans(request):
-    """Display all study plans for the logged-in user with progress tracking"""
     from progress.models import Progress, ResourceProgress
     from studyplan.models import StudyPlanResource
     
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
-    study_plans = StudyPlan.objects.filter(user=user).prefetch_related('plan_resources')
+
+    if _is_admin(user):
+        study_plans = StudyPlan.objects.all().prefetch_related('plan_resources')
+    else:
+        study_plans = StudyPlan.objects.filter(user=user).prefetch_related('plan_resources')
     
-    # Add progress data to each study plan
     plans_with_progress = []
     for plan in study_plans:
-        # Get or create progress record
         progress, created = Progress.objects.get_or_create(
-            user=user,
+            user=plan.user if _is_admin(user) else user,
             study_plan=plan,
             defaults={'total_resources': 0, 'completed_resources': 0}
         )
-        
-        # Update progress if needed
         if created or progress.total_resources == 0:
             progress.update_progress()
-        
-        # Add progress data to plan object
         plan.progress = progress
         plans_with_progress.append(plan)
     
@@ -53,7 +62,6 @@ def list_study_plans(request):
 
 @require_login
 def create_study_plan(request):
-    """Create a new study plan"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
     
@@ -64,16 +72,13 @@ def create_study_plan(request):
             study_plan.user = user
             study_plan.save()
             
-            # Generate AI quizzes for the study plan
             try:
-                print(f"\n🎯 Generating AI quiz for study plan: {study_plan.title}")
                 quiz_data = QuizGenerationService.generate_quiz(
                     topic=study_plan.title,
                     difficulty="medium",
                     num_questions=3
                 )
                 
-                # Create the quiz WITHOUT created_by so it appears in Available Quizzes
                 quiz = Quiz.objects.create(
                     title=f"{study_plan.title} - AI Generated Quiz",
                     description=f"Automatically generated quiz for {study_plan.title}",
@@ -82,7 +87,6 @@ def create_study_plan(request):
                     status="published"
                 )
                 
-                # Create questions from AI response
                 for idx, q_data in enumerate(quiz_data.get("questions", []), 1):
                     question = Question.objects.create(
                         quiz=quiz,
@@ -90,7 +94,6 @@ def create_study_plan(request):
                         order=idx
                     )
                     
-                    # Create options (a, b, c, d)
                     correct_answer = q_data.get("answer", "a").lower()
                     for option_letter in ['a', 'b', 'c', 'd']:
                         QuestionOption.objects.create(
@@ -100,14 +103,12 @@ def create_study_plan(request):
                             order=ord(option_letter) - ord('a')
                         )
                 
-                print(f"✅ Created quiz with {len(quiz_data.get('questions', []))} questions!")
                 messages.success(request, f'Study plan created with AI-generated quiz! 🎉')
                 
-            except Exception as e:
-                print(f"❌ Error generating quiz: {e}")
+            except Exception:
                 messages.success(request, f'Study plan "{study_plan.title}" created successfully! 🎉')
             
-            return redirect('home')  # Redirect to dashboard/home instead of list
+            return redirect('home')
     else:
         form = StudyPlanForm()
     
@@ -119,10 +120,10 @@ def create_study_plan(request):
 
 @require_login
 def edit_study_plan(request, plan_id):
-    """Edit an existing study plan"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
-    study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+
+    study_plan = _get_plan_for_user_or_admin(user, plan_id)
     
     if request.method == 'POST':
         form = StudyPlanForm(request.POST, instance=study_plan)
@@ -141,21 +142,18 @@ def edit_study_plan(request, plan_id):
 
 @require_login
 def delete_study_plan(request, plan_id):
-    """Delete a study plan and all related records"""
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
-    study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+
+    study_plan = _get_plan_for_user_or_admin(user, plan_id)
     
     if request.method == 'POST':
         title = study_plan.title
-        
-        # Delete the study plan (StudyPlanResource will auto-delete via CASCADE)
         try:
             study_plan.delete()
             messages.success(request, f'Study plan "{title}" deleted successfully!')
         except Exception as e:
             messages.error(request, f'Error deleting study plan: {str(e)}')
-            print(f"Error during deletion: {e}")
         
         return redirect('list_study_plans')
     
@@ -166,8 +164,6 @@ def delete_study_plan(request, plan_id):
 
 @require_login
 def get_resources(request, plan_id):
-    """Get AI-powered learning resources with real links for a study plan using smart database system"""
-    from django.db import connection
     from resources.models import Resource
     from studyplan.models import StudyPlanResource
     from progress.models import Progress, ResourceProgress
@@ -175,29 +171,27 @@ def get_resources(request, plan_id):
     user_id = request.session.get("app_user_id")
     
     try:
-        # Close old connections to prevent stale connection issues
         connection.close()
-        
         user = User.objects.get(id=user_id)
-        study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+
+        study_plan = _get_plan_for_user_or_admin(user, plan_id)
+        plan_owner = study_plan.user
         
-        # Get or create progress record
         progress, created = Progress.objects.get_or_create(
-            user=user,
+            user=plan_owner,
             study_plan=study_plan,
             defaults={'total_resources': 0, 'completed_resources': 0}
         )
         
-        # Check if resources are already saved for this study plan
-        existing_plan_resources = StudyPlanResource.objects.filter(study_plan=study_plan).select_related('resource')
+        existing_plan_resources = StudyPlanResource.objects.filter(
+            study_plan=study_plan
+        ).select_related('resource')
         
         if existing_plan_resources.exists():
-            # Use saved resources with progress tracking
             resources = []
             for spr in existing_plan_resources:
-                # Get or create resource progress
                 resource_progress, _ = ResourceProgress.objects.get_or_create(
-                    user=user,
+                    user=plan_owner,
                     study_plan_resource=spr,
                     defaults={'is_completed': spr.is_completed}
                 )
@@ -216,8 +210,6 @@ def get_resources(request, plan_id):
                     "progress_id": resource_progress.id
                 })
         else:
-            # Generate new resources via AI and save them automatically
-            # Build rich context from study plan details
             duration_days = (study_plan.end_date - study_plan.start_date).days
             duration_weeks = duration_days // 7
             
@@ -232,7 +224,6 @@ def get_resources(request, plan_id):
                 'status': study_plan.status
             }
             
-            # Use DeepSeek AI to generate resources with FULL CONTEXT
             resources_data = ResourceGenerationService.generate_resources(
                 topic=study_plan.title,
                 resource_type="all",
@@ -241,14 +232,10 @@ def get_resources(request, plan_id):
                 topic_category=study_plan.topic_category
             )
             
-            print(f"Received {len(resources_data)} resources from AI service")
-            
-            # Save resources to database for this study plan
-            resources = []  # Build list of saved resources
+            resources = []
             for index, resource_data in enumerate(resources_data):
                 try:
-                    # Get or create the resource
-                    resource, created = Resource.objects.get_or_create(
+                    resource, _ = Resource.objects.get_or_create(
                         url=resource_data['url'],
                         defaults={
                             'topic': study_plan.title,
@@ -263,24 +250,21 @@ def get_resources(request, plan_id):
                         }
                     )
                     
-                    # Link resource to study plan
                     spr, _ = StudyPlanResource.objects.get_or_create(
                         study_plan=study_plan,
                         resource=resource,
                         defaults={
                             'order_index': index,
-                            'priority': index  # Set priority to match order_index
+                            'priority': index
                         }
                     )
                     
-                    # Create resource progress
                     resource_progress, _ = ResourceProgress.objects.get_or_create(
-                        user=user,
+                        user=plan_owner,
                         study_plan_resource=spr,
                         defaults={'is_completed': False}
                     )
                     
-                    # Add to resources list for display
                     resources.append({
                         "id": spr.id,
                         "title": resource.title,
@@ -294,33 +278,25 @@ def get_resources(request, plan_id):
                         "is_completed": spr.is_completed,
                         "progress_id": resource_progress.id
                     })
-                    print(f"Saved and added resource: {resource.title}")
-                except Exception as e:
-                    print(f"Error saving resource '{resource_data.get('title', 'Unknown')}': {e}")
+                except Exception:
                     continue
             
-            print(f"Successfully saved {len(resources)} resources to display")
-            
-            # Update progress count
             progress.update_progress()
         
         return render(request, 'studyplan/resources.html', {
             'study_plan': study_plan,
             'resources': resources,
             'progress': progress,
-            'user': user,
+            'user': plan_owner,
             'name': request.session.get("app_user_name", "User")
         })
-    except Exception as e:
-        # If database connection fails, try to reconnect
+    except Exception:
         connection.close()
         messages.error(request, "Database connection error. Please try again.")
-        print(f"Database error in get_resources: {e}")
         return redirect('list_study_plans')
 
 @require_login
 def add_selected_resources(request, plan_id):
-    """Save selected AI-suggested resources to the study plan"""
     from django.http import JsonResponse
     from resources.models import Resource
     from studyplan.models import StudyPlanResource
@@ -334,23 +310,21 @@ def add_selected_resources(request, plan_id):
     user = User.objects.get(id=user_id)
     
     try:
-        study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+        study_plan = _get_plan_for_user_or_admin(user, plan_id)
+        plan_owner = study_plan.user
         
-        # Parse the selected resources from request body
         data = json.loads(request.body)
         selected_resources = data.get('resources', [])
         
         if not selected_resources:
             return JsonResponse({'success': False, 'error': 'No resources selected'}, status=400)
         
-        # Get current max order_index
         max_order = StudyPlanResource.objects.filter(study_plan=study_plan).count()
         
         saved_count = 0
         for index, resource_data in enumerate(selected_resources):
             try:
-                # Get or create the resource
-                resource, created = Resource.objects.get_or_create(
+                resource, _ = Resource.objects.get_or_create(
                     url=resource_data['url'],
                     defaults={
                         'topic': study_plan.title,
@@ -365,7 +339,6 @@ def add_selected_resources(request, plan_id):
                     }
                 )
                 
-                # Link resource to study plan (check if not already linked)
                 spr, spr_created = StudyPlanResource.objects.get_or_create(
                     study_plan=study_plan,
                     resource=resource,
@@ -376,21 +349,17 @@ def add_selected_resources(request, plan_id):
                 )
                 
                 if spr_created:
-                    # Create resource progress
                     ResourceProgress.objects.get_or_create(
-                        user=user,
+                        user=plan_owner,
                         study_plan_resource=spr,
                         defaults={'is_completed': False}
                     )
                     saved_count += 1
-                    print(f"Saved resource: {resource.title}")
                     
-            except Exception as e:
-                print(f"Error saving resource '{resource_data.get('title', 'Unknown')}': {e}")
+            except Exception:
                 continue
         
-        # Update progress
-        progress = Progress.objects.get(user=user, study_plan=study_plan)
+        progress = Progress.objects.get(user=plan_owner, study_plan=study_plan)
         progress.update_progress()
         
         return JsonResponse({
@@ -400,12 +369,10 @@ def add_selected_resources(request, plan_id):
         })
         
     except Exception as e:
-        print(f"Error in add_selected_resources: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @require_login
 def toggle_resource_completion(request, plan_id, resource_id):
-    """Toggle completion status of a resource"""
     from progress.models import Progress, ResourceProgress
     from studyplan.models import StudyPlanResource
     from django.http import JsonResponse
@@ -414,16 +381,18 @@ def toggle_resource_completion(request, plan_id, resource_id):
     user = User.objects.get(id=user_id)
     
     try:
-        study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
-        study_plan_resource = get_object_or_404(StudyPlanResource, id=resource_id, study_plan=study_plan)
+        study_plan = _get_plan_for_user_or_admin(user, plan_id)
+        plan_owner = study_plan.user
+
+        study_plan_resource = get_object_or_404(
+            StudyPlanResource, id=resource_id, study_plan=study_plan
+        )
         
-        # Get or create resource progress
         resource_progress, _ = ResourceProgress.objects.get_or_create(
-            user=user,
+            user=plan_owner,
             study_plan_resource=study_plan_resource
         )
         
-        # Toggle completion
         if resource_progress.is_completed:
             resource_progress.mark_incomplete()
             status = 'incomplete'
@@ -431,8 +400,7 @@ def toggle_resource_completion(request, plan_id, resource_id):
             resource_progress.mark_completed()
             status = 'completed'
         
-        # Get updated progress
-        progress = Progress.objects.get(user=user, study_plan=study_plan)
+        progress = Progress.objects.get(user=plan_owner, study_plan=study_plan)
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
@@ -448,7 +416,6 @@ def toggle_resource_completion(request, plan_id, resource_id):
             return redirect('study_plan_resources', plan_id=plan_id)
             
     except Exception as e:
-        print(f"Error toggling completion: {e}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
         else:
@@ -457,44 +424,40 @@ def toggle_resource_completion(request, plan_id, resource_id):
 
 @require_login
 def study_plan_progress(request, plan_id):
-    """Show progress page for a specific study plan"""
     from progress.models import Progress, ResourceProgress
     from studyplan.models import StudyPlanResource
     from quiz.models import Quiz, QuizAttempt
     
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
-    study_plan = get_object_or_404(StudyPlan, id=plan_id, user=user)
+
+    study_plan = _get_plan_for_user_or_admin(user, plan_id)
+    plan_owner = study_plan.user
     
-    # Get or create progress record
     progress, created = Progress.objects.get_or_create(
-        user=user,
+        user=plan_owner,
         study_plan=study_plan,
         defaults={'total_resources': 0, 'completed_resources': 0}
     )
     
-    # Update progress if needed
     if created or progress.total_resources == 0:
         progress.update_progress()
     
-    # Get quiz statistics
     quiz_count = Quiz.objects.filter(study_plan=study_plan).count()
     quiz_attempts_count = QuizAttempt.objects.filter(
-        user=user,
+        user=plan_owner,
         quiz__study_plan=study_plan
     ).count()
     
-    # Get user's rank
-    user_rank = user.current_rank if user.current_rank > 0 else \
-                User.objects.filter(total_points__gt=user.total_points).count() + 1
+    user_rank = plan_owner.current_rank if plan_owner.current_rank > 0 else \
+                User.objects.filter(total_points__gt=plan_owner.total_points).count() + 1
     
     return render(request, 'studyplan/progress_detail.html', {
         'study_plan': study_plan,
         'progress': progress,
-        'user': user,
+        'user': plan_owner,
         'name': request.session.get("app_user_name", "User"),
         'quiz_count': quiz_count,
         'quiz_attempts_count': quiz_attempts_count,
         'user_rank': user_rank,
     })
-

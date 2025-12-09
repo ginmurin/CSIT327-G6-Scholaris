@@ -12,10 +12,18 @@
   <div class="page-bg">
     <div class="container">
 
-      <!-- TOP BAR -->
       <header class="top-card">
         <div class="top-left">
-          <div class="avatar"></div>
+          <div class="profile-avatar header-avatar">
+            {% if admin_user.profile_src %}
+              <img src="{{ admin_user.profile_src }}" alt="{{ admin_user.name }}" class="avatar-img">
+            {% elif admin_user.profile_picture %}
+              <img src="{{ admin_user.profile_picture }}" alt="{{ admin_user.name }}" class="avatar-img">
+            {% else %}
+              <div class="avatar-placeholder">{{ admin_user.name|first|upper }}</div>
+            {% endif %}
+          </div>
+
           <div>
             <h1>Admin Dashboard</h1>
             <p>Manage users, study plans, progress, and quizzes.</p>
@@ -23,13 +31,16 @@
         </div>
 
         <div class="top-actions">
-          <a href="{% url 'home' %}" class="btn-light">Go to User View</a>
-          <a href="#" class="btn-outline">Settings</a>
+          {% if is_impersonating %}
+            <a href="{% url 'admin_page:return_to_admin' %}" class="btn-outline">
+              Back to Admin View
+            </a>
+          {% endif %}
+
+          <a href="{% url 'home' %}" class="btn-outline">Go to User View</a>
         </div>
       </header>
 
-
-      <!-- STATS -->
       <section class="stats-row">
         <div class="stat-card">
           <div class="stat-icon">👤</div>
@@ -50,8 +61,6 @@
         </div>
       </section>
 
-
-      <!-- QUICK ACTIONS -->
       <section class="quick-row">
         <a class="quick-card" href="{% url 'list_study_plans' %}">
           <div class="quick-emoji">📘</div>
@@ -59,13 +68,12 @@
           <p>View, edit, activate, or archive plans.</p>
         </a>
 
-        <a class="quick-card" href="#">
+        <a class="quick-card" href="{% url 'admin_page:users_list' %}">
           <div class="quick-emoji">🧑‍🎓</div>
           <h3>Manage Users</h3>
-          <p>Promote admins, reset users, or ban accounts.</p>
+          <p>View users and accounts.</p>
         </a>
 
-        <!-- ✅ FIXED: no reverse, safe link -->
         <a class="quick-card" href="/quiz/">
           <div class="quick-emoji">📝</div>
           <h3>Manage Quizzes</h3>
@@ -73,12 +81,10 @@
         </a>
       </section>
 
-
-      <!-- RECENT USERS -->
-      <section class="white-card">
+      <section class="white-card" id="recent-users">
         <div class="card-header">
           <h2>Recent Users</h2>
-          <a class="link-soft" href="#">View all →</a>
+          <a class="link-soft" href="{% url 'admin_page:users_list' %}">View all →</a>
         </div>
 
         <div class="table">
@@ -92,14 +98,32 @@
           {% for u in recent_users %}
           <div class="table-row">
             <div class="user-cell">
-              <span class="mini-avatar"></span>
-              <span>{{ u.username }}</span>
+
+              <div class="profile-avatar profile-avatar--list">
+                {% if u.profile_src %}
+                  <img src="{{ u.profile_src }}" alt="{{ u.name }}" class="avatar-img">
+                {% elif u.profile_picture %}
+                  <img src="{{ u.profile_picture }}" alt="{{ u.name }}" class="avatar-img">
+                {% else %}
+                  <div class="avatar-placeholder">{{ u.name|first|upper }}</div>
+                {% endif %}
+              </div>
+
+              <span>{{ u.name }}</span>
             </div>
+
             <div>{{ u.email }}</div>
             <div>{{ u.total_points }}</div>
+
             <div class="actions">
-              <a href="#" class="btn-mini">View</a>
-              <a href="#" class="btn-mini danger">Ban</a>
+              <a href="{% url 'admin_page:user_detail' u.id %}" class="btn-mini">View</a>
+
+              <form method="post"
+                    action="{% url 'admin_page:delete_user' u.id %}"
+                    class="delete-form">
+                {% csrf_token %}
+                <button class="btn-mini danger" type="submit" data-name="{{ u.name }}">Delete</button>
+              </form>
             </div>
           </div>
           {% empty %}
@@ -108,8 +132,6 @@
         </div>
       </section>
 
-
-      <!-- RECENT PLANS -->
       <section class="white-card">
         <div class="card-header">
           <h2>Recent Study Plans</h2>
@@ -121,19 +143,22 @@
           <article class="plan-item">
             <div class="plan-title-row">
               <h3>{{ p.title }}</h3>
-
               {% if p.status|lower == "active" %}
                 <span class="badge active">ACTIVE</span>
               {% else %}
                 <span class="badge inactive">{{ p.status|upper }}</span>
               {% endif %}
-
             </div>
-            <p class="plan-subtitle">Owner: {{ p.user.username }}</p>
+
+            <p class="plan-subtitle">Owner: {{ p.user.name }}</p>
 
             <div class="plan-actions">
-              <a href="{% url 'study_plan_progress' p.id %}" class="btn-primary">Open</a>
-              <a href="{% url 'edit_study_plan' p.id %}" class="btn-light">Edit</a>
+              {% if p.user.id == admin_user.id %}
+                <a href="{% url 'study_plan_progress' p.id %}" class="btn-primary">Open</a>
+                <a href="{% url 'edit_study_plan' p.id %}" class="btn-light">Edit</a>
+              {% else %}
+                <a href="{% url 'admin_page:user_detail' p.user.id %}" class="btn-primary">Open</a>
+              {% endif %}
             </div>
           </article>
           {% empty %}
@@ -144,6 +169,58 @@
 
     </div>
   </div>
+
+
+  <!-- DELETE MODAL -->
+  <div id="deleteModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <h3 class="modal-title">Delete account?</h3>
+      <p class="modal-text">
+        Are you sure you want to delete <span id="deleteUserName">this user</span>?
+        This action cannot be undone.
+      </p>
+
+      <div class="modal-actions">
+        <button id="cancelDelete" class="btn-light" type="button">Cancel</button>
+        <button id="confirmDelete" class="btn-mini danger" type="button">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const modal = document.getElementById("deleteModal");
+      const cancelBtn = document.getElementById("cancelDelete");
+      const confirmBtn = document.getElementById("confirmDelete");
+      const nameSpan = document.getElementById("deleteUserName");
+      let pendingForm = null;
+
+      document.querySelectorAll(".delete-form button[type='submit']").forEach(btn => {
+        btn.addEventListener("click", function(e){
+          e.preventDefault();
+          pendingForm = this.closest("form");
+          nameSpan.textContent = this.dataset.name || "this user";
+          modal.style.display = "flex";
+        });
+      });
+
+      cancelBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+        pendingForm = null;
+      });
+
+      modal.addEventListener("click", (e) => {
+        if(e.target === modal){
+          modal.style.display = "none";
+          pendingForm = null;
+        }
+      });
+
+      confirmBtn.addEventListener("click", () => {
+        if(pendingForm) pendingForm.submit();
+      });
+    })();
+  </script>
 
 </body>
 </html>
