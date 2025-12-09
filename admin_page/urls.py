@@ -17,6 +17,7 @@ urlpatterns = [
     path("plans/<int:plan_id>/delete/", views.delete_plan, name="delete_plan"),
     path("plans/<int:plan_id>/open/", views.open_plan, name="open_plan"),
 
+    path("users/<int:user_id>/plans/<int:plan_id>/open/", views.open_user_plan, name="open_user_plan"),
     path("users/<int:user_id>/view-as/", views.view_as_user, name="view_as_user"),
     path("return-admin/", views.return_to_admin, name="return_to_admin"),
 ]

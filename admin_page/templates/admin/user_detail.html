@@ -84,7 +84,7 @@
           <p class="plan-subtitle">{{ p.learning_objective }}</p>
 
           <div class="plan-actions">
-            <a href="{% url 'study_plan_progress' p.id %}" class="btn-primary">Open</a>
+            <a href="{% url 'admin_page:open_user_plan' target_user.id p.id %}" class="btn-primary">Open</a>
             <a href="{% url 'edit_study_plan' p.id %}" class="btn-light">Edit</a>
           </div>
         </article>

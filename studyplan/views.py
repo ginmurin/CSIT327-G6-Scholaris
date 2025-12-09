@@ -167,6 +167,7 @@ def get_resources(request, plan_id):
     from resources.models import Resource
     from studyplan.models import StudyPlanResource
     from progress.models import Progress, ResourceProgress
+    from django.urls import reverse
     
     user_id = request.session.get("app_user_id")
     
@@ -176,6 +177,23 @@ def get_resources(request, plan_id):
 
         study_plan = _get_plan_for_user_or_admin(user, plan_id)
         plan_owner = study_plan.user
+        
+        # Determine back URL based on admin viewing context
+        admin_viewing_user_id = request.session.get("admin_viewing_user_id")
+        admin_viewing_from = request.session.get("admin_viewing_from")
+        back_url = reverse('list_study_plans')
+        back_label = "Back to Study Plans"
+        
+        if admin_viewing_user_id and _is_admin(user):
+            if admin_viewing_from == "plans_list":
+                back_url = reverse('admin_page:plans_list')
+                back_label = "Back to Study Plans"
+            elif admin_viewing_from == "user_detail":
+                back_url = reverse('admin_page:user_detail', kwargs={'user_id': admin_viewing_user_id})
+                back_label = "Back to User"
+            else:
+                back_url = reverse('admin_page:user_detail', kwargs={'user_id': admin_viewing_user_id})
+                back_label = "Back to User"
         
         progress, created = Progress.objects.get_or_create(
             user=plan_owner,
@@ -288,7 +306,9 @@ def get_resources(request, plan_id):
             'resources': resources,
             'progress': progress,
             'user': plan_owner,
-            'name': request.session.get("app_user_name", "User")
+            'name': request.session.get("app_user_name", "User"),
+            'back_url': back_url,
+            'back_label': back_label,
         })
     except Exception:
         connection.close()
@@ -427,6 +447,7 @@ def study_plan_progress(request, plan_id):
     from progress.models import Progress, ResourceProgress
     from studyplan.models import StudyPlanResource
     from quiz.models import Quiz, QuizAttempt
+    from django.urls import reverse
     
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
@@ -452,6 +473,23 @@ def study_plan_progress(request, plan_id):
     user_rank = plan_owner.current_rank if plan_owner.current_rank > 0 else \
                 User.objects.filter(total_points__gt=plan_owner.total_points).count() + 1
     
+    # Check if accessed from admin panel
+    admin_viewing_user_id = request.session.get("admin_viewing_user_id")
+    admin_viewing_from = request.session.get("admin_viewing_from")
+    back_url = reverse('list_study_plans')
+    back_label = "Back to Study Plans"
+    
+    if admin_viewing_user_id and _is_admin(user):
+        if admin_viewing_from == "plans_list":
+            back_url = reverse('admin_page:plans_list')
+            back_label = "Back to Study Plans"
+        elif admin_viewing_from == "user_detail":
+            back_url = reverse('admin_page:user_detail', kwargs={'user_id': admin_viewing_user_id})
+            back_label = "Back to User"
+        else:
+            back_url = reverse('admin_page:user_detail', kwargs={'user_id': admin_viewing_user_id})
+            back_label = "Back to User"
+    
     return render(request, 'studyplan/progress_detail.html', {
         'study_plan': study_plan,
         'progress': progress,
@@ -460,4 +498,6 @@ def study_plan_progress(request, plan_id):
         'quiz_count': quiz_count,
         'quiz_attempts_count': quiz_attempts_count,
         'user_rank': user_rank,
+        'back_url': back_url,
+        'back_label': back_label,
     })

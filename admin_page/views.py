@@ -99,6 +99,9 @@ def users_list(request):
         u.profile_src = _profile_src(u)
 
     admin_user.profile_src = _profile_src(admin_user)
+    
+    # Clear admin viewing flags
+    _clear_admin_viewing_flags(request)
 
     return render(request, "admin/users_list.html", {
         "admin_user": admin_user,
@@ -120,6 +123,9 @@ def user_detail(request, user_id):
     target_user.profile_src = _profile_src(target_user)
 
     plans = StudyPlan.objects.filter(user=target_user).order_by("-date_created")
+    
+    # Clear viewing flags when viewing user detail
+    _clear_admin_viewing_flags(request)
 
     return render(request, "admin/user_detail.html", {
         "admin_user": admin_user,
@@ -139,11 +145,30 @@ def open_plan(request, plan_id):
 
     plan = get_object_or_404(StudyPlan, id=plan_id)
 
-    if not request.session.get("impersonate_original_admin_id"):
-        request.session["impersonate_original_admin_id"] = admin_id
+    # Don't switch user session - just set viewing context
+    request.session["admin_viewing_plan_id"] = plan.id
+    request.session["admin_viewing_user_id"] = plan.user.id
+    request.session["admin_viewing_from"] = "plans_list"
 
-    request.session["app_user_id"] = plan.user.id
-    request.session["app_user_name"] = getattr(plan.user, "name", getattr(plan.user, "username", "User"))
+    return redirect("study_plan_progress", plan_id=plan.id)
+
+
+def open_user_plan(request, user_id, plan_id):
+    """Open a plan from user detail page"""
+    admin_id = request.session.get("app_user_id")
+    if not admin_id:
+        return redirect("landing")
+
+    admin_user = get_object_or_404(AppUser, id=admin_id)
+    if not _is_admin(admin_user):
+        return redirect("home")
+
+    plan = get_object_or_404(StudyPlan, id=plan_id, user_id=user_id)
+
+    # Set viewing context from user detail
+    request.session["admin_viewing_plan_id"] = plan.id
+    request.session["admin_viewing_user_id"] = user_id
+    request.session["admin_viewing_from"] = "user_detail"
 
     return redirect("study_plan_progress", plan_id=plan.id)
 
@@ -197,6 +222,9 @@ def return_to_admin(request):
     request.session["app_user_id"] = admin_user.id
     request.session["app_user_name"] = admin_user.name
     request.session.pop("impersonate_original_admin_id", None)
+    request.session.pop("admin_viewing_user_id", None)
+    request.session.pop("admin_viewing_from", None)
+    request.session.pop("admin_viewing_plan_id", None)
 
     return redirect("admin_page:home")
 
@@ -272,6 +300,13 @@ def delete_quiz(request, quiz_id):
     return redirect("admin_page:quizzes_list")
 
 
+def _clear_admin_viewing_flags(request):
+    """Clear admin viewing session flags"""
+    request.session.pop("admin_viewing_user_id", None)
+    request.session.pop("admin_viewing_from", None)
+    request.session.pop("admin_viewing_plan_id", None)
+
+
 def plans_list(request):
     """Display all study plans with their users"""
     admin_id = request.session.get("app_user_id")
@@ -305,6 +340,9 @@ def plans_list(request):
             plan.user.profile_src = _profile_src(plan.user)
 
     admin_user.profile_src = _profile_src(admin_user)
+    
+    # Clear admin viewing flags when returning to plans list
+    _clear_admin_viewing_flags(request)
 
     return render(request, "admin/plans_list.html", {
         "admin_user": admin_user,

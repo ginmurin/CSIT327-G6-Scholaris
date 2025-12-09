@@ -266,9 +266,9 @@
 </head>
 <body>
   <div class="container">
-    <a href="{% url 'list_study_plans' %}" class="back-button">
+    <a href="{{ back_url }}" class="back-button">
       <span>←</span>
-      <span>Back to Study Plans</span>
+      <span>{{ back_label }}</span>
     </a>
 
     <div class="progress-container">
