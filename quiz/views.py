@@ -114,6 +114,7 @@ def create_quiz(request):
             quiz = form.save(commit=False)
             quiz.created_by = user
             quiz.status = 'draft'
+            quiz.is_public = False  # Default to private/not public
             quiz.save()
             messages.success(request, f'Quiz "{quiz.title}" created! Now add questions.')
             url = reverse('add_question_custom', kwargs={'quiz_id': quiz.id})

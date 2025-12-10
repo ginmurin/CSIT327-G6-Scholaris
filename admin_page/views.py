@@ -173,6 +173,26 @@ def open_user_plan(request, user_id, plan_id):
     return redirect("study_plan_progress", plan_id=plan.id)
 
 
+def edit_user_plan(request, user_id, plan_id):
+    """Edit a plan from user detail page - sets context before redirecting to edit"""
+    admin_id = request.session.get("app_user_id")
+    if not admin_id:
+        return redirect("landing")
+
+    admin_user = get_object_or_404(AppUser, id=admin_id)
+    if not _is_admin(admin_user):
+        return redirect("home")
+
+    plan = get_object_or_404(StudyPlan, id=plan_id, user_id=user_id)
+
+    # Set viewing context from user detail
+    request.session["admin_viewing_plan_id"] = plan.id
+    request.session["admin_viewing_user_id"] = user_id
+    request.session["admin_viewing_from"] = "user_detail"
+
+    return redirect("edit_study_plan", plan_id=plan.id)
+
+
 def delete_user(request, user_id):
     if request.method != "POST":
         return redirect("admin_page:user_detail", user_id=user_id)

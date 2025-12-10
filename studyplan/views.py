@@ -120,6 +120,7 @@ def create_study_plan(request):
 
 @require_login
 def edit_study_plan(request, plan_id):
+    from django.urls import reverse
     user_id = request.session.get("app_user_id")
     user = User.objects.get(id=user_id)
 
@@ -130,14 +131,37 @@ def edit_study_plan(request, plan_id):
         if form.is_valid():
             form.save()
             messages.success(request, f'Study plan "{study_plan.title}" updated successfully!')
+            
+            # Check if accessed from admin panel
+            admin_viewing_user_id = request.session.get("admin_viewing_user_id")
+            admin_viewing_from = request.session.get("admin_viewing_from")
+            
+            if admin_viewing_user_id and _is_admin(user):
+                if admin_viewing_from == "plans_list":
+                    return redirect('admin_page:plans_list')
+                elif admin_viewing_from == "user_detail":
+                    return redirect('admin_page:user_detail', user_id=admin_viewing_user_id)
+            
             return redirect('list_study_plans')
     else:
         form = StudyPlanForm(instance=study_plan)
     
+    # Determine back URL for cancel button
+    admin_viewing_user_id = request.session.get("admin_viewing_user_id")
+    admin_viewing_from = request.session.get("admin_viewing_from")
+    back_url = reverse('list_study_plans')
+    
+    if admin_viewing_user_id and _is_admin(user):
+        if admin_viewing_from == "plans_list":
+            back_url = reverse('admin_page:plans_list')
+        elif admin_viewing_from == "user_detail":
+            back_url = reverse('admin_page:user_detail', kwargs={'user_id': admin_viewing_user_id})
+    
     return render(request, 'studyplan/edit_study_plan.html', {
         'form': form,
         'study_plan': study_plan,
-        'name': request.session.get("app_user_name", "User")
+        'name': request.session.get("app_user_name", "User"),
+        'back_url': back_url
     })
 
 @require_login

@@ -24,33 +24,17 @@ class ResourceGenerationService:
         """Generate learning resources using AI"""
         limit = max(3, min(6, int(limit or 5)))
 
-        prompt = f"""Generate EXACTLY {limit} high-quality learning resources about "{topic}".
+        prompt = f"""Generate {limit} learning resources about "{topic}".
+Return ONLY valid JSON array, no markdown or extra text.
 
-You MUST return ONLY a valid JSON array with NO additional text, explanations, or markdown formatting.
-
-Format (return THIS EXACT structure):
+Format:
 [
-  {{
-    "title": "Introduction to {topic}",
-    "type": "video",
-    "url": "https://www.youtube.com/watch?v=example",
-    "description": "Learn the fundamentals of {topic}",
-    "estimated_time": "15 minutes",
-    "difficulty": "beginner",
-    "platform": "YouTube",
-    "is_free": true
-  }}
+  {{"title":"Intro to {topic}","type":"video","url":"https://youtube.com/watch?v=x","description":"Learn {topic}","estimated_time":"15min","difficulty":"beginner","platform":"YouTube","is_free":true}}
 ]
 
-Rules:
-1. Generate REAL, specific resources about {topic}
-2. Use actual educational platforms (YouTube, Coursera, Khan Academy, MDN, freeCodeCamp, etc.)
-3. Types can be: "video", "article", "course", "tutorial", "documentation"
-4. Difficulty: "beginner", "intermediate", or "advanced"
-5. All resources must be free (is_free: true)
-6. Return ONLY the JSON array, nothing else
-
-Generate {limit} resources now:"""
+Types: video, article, course, tutorial
+Difficulty: beginner, intermediate, advanced
+Generate {limit} resources:"""
 
         try:
             client = get_openrouter_client()
@@ -58,12 +42,12 @@ Generate {limit} resources now:"""
             response = client.chat.completions.create(
                 model="meta-llama/llama-3.3-70b-instruct:free",
                 messages=[
-                    {"role": "system", "content": f"You are a helpful assistant that generates learning resources. Output ONLY valid JSON array with no additional text."},
+                    {"role": "system", "content": "Output ONLY valid JSON array, no extra text."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
-                max_tokens=2000,
-                timeout=30.0
+                temperature=0.2,
+                max_tokens=1200,
+                timeout=20.0
             )
 
             result_text = (response.choices[0].message.content or "").strip()
@@ -87,24 +71,11 @@ Generate {limit} resources now:"""
             if not isinstance(resources, list):
                 raise ValueError("AI response is not a JSON list")
 
-            # Filter valid resources and check if they match the topic
+            # Quick validation - just check required fields
             cleaned = []
-            topic_lower = topic.lower()
             for r in resources:
-                if not isinstance(r, dict) or "title" not in r or "url" not in r:
-                    continue
-                # Basic topic validation - check if topic keywords appear in title or description
-                title_lower = r.get("title", "").lower()
-                desc_lower = r.get("description", "").lower()
-                # Skip if resource seems unrelated to the topic
-                if topic_lower not in title_lower and topic_lower not in desc_lower:
-                    # Check for major keywords from topic
-                    topic_words = set(topic_lower.split())
-                    title_words = set(title_lower.split())
-                    # If no overlap in main words, skip
-                    if not topic_words.intersection(title_words):
-                        continue
-                cleaned.append(r)
+                if isinstance(r, dict) and "title" in r and "url" in r:
+                    cleaned.append(r)
 
             if not cleaned:
                 raise ValueError("No valid resources after cleaning")
