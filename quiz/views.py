@@ -52,8 +52,17 @@ def quiz_list(request):
             # Get quizzes for this specific study plan
             my_quizzes = Quiz.objects.filter(created_by=user, study_plan=selected_study_plan)
             
-            # Available quizzes: ONLY AI-generated quizzes for this specific study plan
-            study_plan_quizzes = Quiz.objects.filter(study_plan=selected_study_plan, created_by=None)
+            # Available quizzes: AI-generated quizzes for this study plan + public quizzes from same category
+            ai_quizzes = Quiz.objects.filter(study_plan=selected_study_plan, created_by=None)
+            
+            # Get public quizzes from other users with the same topic category
+            public_quizzes = Quiz.objects.filter(
+                is_public=True,
+                status='published',
+                study_plan__topic_category=selected_study_plan.topic_category
+            ).exclude(created_by=user).exclude(created_by=None)
+            
+            study_plan_quizzes = list(ai_quizzes) + list(public_quizzes)
             
         except StudyPlan.DoesNotExist:
             my_quizzes = Quiz.objects.filter(created_by=user)
