@@ -101,7 +101,7 @@ class QuizGenerationService:
                 messages=messages,
                 temperature=0.3,
                 max_tokens=2000,
-                timeout=25.0  # 25 second timeout for faster response
+                timeout=30.0  # 30 second timeout for faster response
             )
             
             print("📥 Receiving quiz data...")
