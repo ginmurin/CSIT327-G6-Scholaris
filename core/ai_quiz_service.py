@@ -48,42 +48,15 @@ class QuizGenerationService:
         messages = [
             {
                 "role": "system",
-                "content": (
-                    "You are an AI that must output ONLY valid JSON. "
-                    "Never include explanations, comments, markdown, or additional text. "
-                    "Generate educational quiz questions based on the given topic."
-                )
+                "content": "Output ONLY valid JSON. No markdown, no explanations."
             },
             {
                 "role": "user",
                 "content": (
-                    f"Create {num_questions} educational multiple choice questions about '{topic}' "
-                    f"at {difficulty} difficulty level.\n\n"
-                    f"Topic: {topic}\n"
-                    f"Difficulty: {difficulty}\n"
-                    f"Number of questions: {num_questions}\n\n"
-                    "IMPORTANT RULES:\n"
-                    "1. Questions MUST be about the actual topic, not generic placeholders\n"
-                    "2. Test real understanding and knowledge of the subject\n"
-                    "3. Each question must have 4 distinct options (a, b, c, d)\n"
-                    "4. Only ONE option should be correct\n"
-                    "5. The answer field must be a single lowercase letter: a, b, c, or d\n"
-                    "6. Make options challenging but fair\n"
-                    "7. Return ONLY valid JSON, no markdown or explanations\n\n"
-                    "Example format (but create REAL questions about the topic):\n"
-                    "{\n"
-                    "  \"questions\": [\n"
-                    "    {\n"
-                    "      \"question\": \"What is the main function of mitochondria?\",\n"
-                    "      \"a\": \"Protein synthesis\",\n"
-                    "      \"b\": \"Energy production (ATP)\",\n"
-                    "      \"c\": \"DNA replication\",\n"
-                    "      \"d\": \"Cell division\",\n"
-                    "      \"answer\": \"b\"\n"
-                    "    }\n"
-                    "  ]\n"
-                    "}\n\n"
-                    f"Now create {num_questions} REAL questions about {topic}:"
+                    f"Create {num_questions} {difficulty} quiz questions about '{topic}'.\n"
+                    f"Return ONLY this JSON format:\n"
+                    f'{{"questions":[{{"question":"text","a":"opt1","b":"opt2","c":"opt3","d":"opt4","answer":"a"}}]}}\n'
+                    f"Rules: Real questions about {topic}, 4 options each, one correct answer (a/b/c/d)."
                 )
             }
         ]
@@ -99,9 +72,9 @@ class QuizGenerationService:
             response = client.chat.completions.create(
                 model="meta-llama/llama-3.3-70b-instruct:free",
                 messages=messages,
-                temperature=0.3,
-                max_tokens=2000,
-                timeout=30.0  # 30 second timeout for faster response
+                temperature=0.2,
+                max_tokens=1200,
+                timeout=20.0
             )
             
             print("📥 Receiving quiz data...")
@@ -116,27 +89,19 @@ class QuizGenerationService:
             # Parse the JSON
             parsed = json.loads(content)
             
-            # Validate the structure
+            # Simple validation
             if "questions" not in parsed:
                 raise ValueError("Response missing 'questions' field")
             
-            if len(parsed["questions"]) != num_questions:
-                print(f"⚠️ Warning: Expected {num_questions} questions, got {len(parsed['questions'])}")
-            
-            print(f"✅ Quiz generated successfully! Created {len(parsed['questions'])} questions.\n")
+            print(f"✅ Quiz generated! Created {len(parsed['questions'])} questions.\n")
             return parsed
             
         except json.JSONDecodeError as e:
-            print(f"❌ JSON parsing error: {e}")
-            print(f"📄 Raw response: {content[:200]}...")
-            return _get_fallback_quiz(topic, num_questions)
-            
-        except ValueError as e:
-            print(f"❌ Configuration error: {e}")
+            print(f"❌ JSON error: {e}")
             return _get_fallback_quiz(topic, num_questions)
             
         except Exception as e:
-            print(f"❌ Error calling OpenRouter API: {e}")
+            print(f"❌ Error: {e}")
             return _get_fallback_quiz(topic, num_questions)
 
 
