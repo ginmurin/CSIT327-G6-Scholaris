@@ -55,16 +55,18 @@ class StudyPlanForm(forms.ModelForm):
         }
     
     def clean_start_date(self):
-        """Validate that start date is not in the past"""
+        """Validate that start date is not in the past (only for new plans)"""
         start_date = self.cleaned_data.get('start_date')
-        if start_date and start_date < date.today():
+        # Only validate for new plans, allow existing plans to keep their dates
+        if not self.instance.pk and start_date and start_date < date.today():
             raise forms.ValidationError("Start date cannot be in the past. Please select today or a future date.")
         return start_date
     
     def clean_end_date(self):
-        """Validate that end date is not in the past"""
+        """Validate that end date is not in the past (only for new plans)"""
         end_date = self.cleaned_data.get('end_date')
-        if end_date and end_date < date.today():
+        # Only validate for new plans, allow existing plans to keep their dates
+        if not self.instance.pk and end_date and end_date < date.today():
             raise forms.ValidationError("End date cannot be in the past. Please select today or a future date.")
         return end_date
     
